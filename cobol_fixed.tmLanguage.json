@@ -134,7 +134,7 @@
 				},
 				{
 					"name": "keyword.control.cobol",
-					"match": "(?<![A-Za-z0-9-])(IDENTIFICATION|ENVIRONMENT|DATA|PROCEDURE)\\s+DIVISION(?![A-Za-z0-9-])"
+					"match": "(?<![A-Za-z0-9-])(IDENTIFICATION|ID|ENVIRONMENT|DATA|PROCEDURE)\\s+DIVISION(?![A-Za-z0-9-])"
 				},
 				{
 					"name": "keyword.control.section.cobol",
@@ -162,7 +162,7 @@
 				},
 				{
 					"name": "storage.type.cobol",
-					"match": "(?<![A-Za-z0-9-])(PIC|PICTURE|USAGE|COMP|COMP-3|BINARY|PACKED-DECIMAL|DISPLAY|INDEX|VALUE|OCCURS|REDEFINES|RENAMES|BLANK\\s+WHEN\\s+ZERO|JUSTIFIED|JUST|SYNCHRONIZED|SYNC|EXTERNAL|GLOBAL|OPTIONAL)(?![A-Za-z0-9-])"
+					"match": "(?<![A-Za-z0-9-])(PIC|PICTURE|USAGE|COMP|COMP-3|BINARY|PACKED-DECIMAL|DISPLAY|INDEX|VALUE|VALUES|OCCURS|REDEFINES|RENAMES|BLANK\\s+WHEN\\s+ZERO|JUSTIFIED|JUST|SYNCHRONIZED|SYNC|EXTERNAL|GLOBAL|OPTIONAL)(?![A-Za-z0-9-])"
 				},
 				{
 					"name": "support.constant.cobol",
@@ -170,7 +170,7 @@
 				},
 				{
 					"name": "variable.language.cobol",
-					"match": "(?<![A-Za-z0-9-])(FILLER)(?![A-Za-z0-9-])"
+					"match": "(?<![A-Za-z0-9-])(FILLER|RETURN-CODE)(?![A-Za-z0-9-])"
 				}
 			]
 		},
