@@ -98,6 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
       { scheme: "untitled", language: "cobol85" },
     ],
     synchronize: {
+      configurationSection: "cobol85",
       // optional: copybooks trigger re-validate
       fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{cpy,CPY}"),
     },

@@ -130,37 +130,59 @@
       "patterns": [
         { "match": "(?i)(?<![\\w-])STOP\\s+RUN(?![\\w-])", "name": "keyword.control.cobol" },
         { "match": "(?i)(?<![\\w-])GO\\s+TO(?![\\w-])", "name": "keyword.control.cobol" },
+        { "match": "(?i)(?<![\\w-])NEXT\\s+SENTENCE(?![\\w-])", "name": "keyword.control.cobol" },
+        { "match": "(?i)(?<![\\w-])EXEC\\s+DLI(?![\\w-])", "name": "keyword.control.cobol" },
         {
-          "match": "(?i)(?<![\\w-])END-(ACCEPT|ADD|CALL|COMPUTE|DELETE|DISPLAY|DIVIDE|EVALUATE|IF|MULTIPLY|PERFORM|READ|RETURN|REWRITE|SEARCH|START|STRING|SUBTRACT|UNSTRING|WRITE)(?![\\w-])",
+          "match": "(?i)(?<![\\w-])END-(ACCEPT|ADD|CALL|COMPUTE|DELETE|DISPLAY|DIVIDE|EVALUATE|EXEC|IF|MULTIPLY|PERFORM|READ|RETURN|REWRITE|SEARCH|START|STRING|SUBTRACT|UNSTRING|WRITE)(?![\\w-])",
           "name": "keyword.control.cobol"
         },
         {
-          "match": "(?i)(?<![\\w-])(ACCEPT|ADD|ALTER|CALL|CANCEL|CLOSE|COMPUTE|CONTINUE|DELETE|DISPLAY|DIVIDE|EVALUATE|EXIT|GOBACK|GO|IF|ELSE|THEN|WHEN|PERFORM|READ|REWRITE|WRITE|OPEN|MOVE|MULTIPLY|SUBTRACT|STRING|UNSTRING|INSPECT|INITIALIZE|SEARCH|SET|SORT|MERGE|RELEASE|RETURN|START|STOP|USE|NEXT|SENTENCE)(?![\\w-])",
+          "match": "(?i)(?<![\\w-])(ACCEPT|ADD|ALSO|ALTER|CALL|CANCEL|CLOSE|COMPUTE|CONTINUE|DELETE|DISPLAY|DIVIDE|ENTER|EVALUATE|EXEC|EXIT|GOBACK|GO|IF|ELSE|THEN|WHEN|PERFORM|READ|REWRITE|WRITE|OPEN|MOVE|MULTIPLY|SUBTRACT|STRING|UNSTRING|INSPECT|INITIALIZE|SEARCH|SET|SORT|MERGE|RELEASE|RETURN|START|STOP|USE|NEXT|SENTENCE)(?![\\w-])",
+          "name": "keyword.control.cobol"
+        },
+        {
+          "match": "(?i)(?<![\\w-])(DLI|DLET|GHN|GHNP|GHU|GN|GNP|GU|ISRT|PURG|REPL)(?![\\w-])",
           "name": "keyword.control.cobol"
         },
 
-        { "match": "(?i)(?<![\\w-])(IDENTIFICATION|ENVIRONMENT|DATA|PROCEDURE)\\s+DIVISION(?![\\w-])", "name": "keyword.other.cobol" },
+        { "match": "(?i)(?<![\\w-])(IDENTIFICATION|ID|ENVIRONMENT|DATA|PROCEDURE)\\s+DIVISION(?![\\w-])", "name": "keyword.other.cobol" },
         { "match": "(?i)(?<![\\w-])(SECTION|PARAGRAPH|DECLARATIVES|END\\s*DECLARATIVES)(?![\\w-])", "name": "keyword.other.cobol" },
         { "match": "(?i)(?<![\\w-])(PROGRAM-ID|AUTHOR|INSTALLATION|DATE-WRITTEN|DATE-COMPILED|SECURITY|REMARKS)(?![\\w-])", "name": "keyword.other.cobol" },
         { "match": "(?i)(?<![\\w-])(CONFIGURATION|SOURCE-COMPUTER|OBJECT-COMPUTER|SPECIAL-NAMES|INPUT-OUTPUT|FILE-CONTROL|I-O-CONTROL)(?![\\w-])", "name": "keyword.other.cobol" },
-        { "match": "(?i)(?<![\\w-])(FILE\\s+SECTION|WORKING-STORAGE\\s+SECTION|LINKAGE\\s+SECTION|COMMUNICATION\\s+SECTION|REPORT\\s+SECTION|SCREEN\\s+SECTION)(?![\\w-])", "name": "keyword.other.cobol" },
+        { "match": "(?i)(?<![\\w-])(FILE\\s+SECTION|WORKING-STORAGE\\s+SECTION|LOCAL-STORAGE\\s+SECTION|LINKAGE\\s+SECTION|COMMUNICATION\\s+SECTION|REPORT\\s+SECTION|SCREEN\\s+SECTION)(?![\\w-])", "name": "keyword.other.cobol" },
 
         {
-          "match": "(?i)(?<![\\w-])(SELECT|ASSIGN|ORGANIZATION|ACCESS|MODE|RECORD|KEY|RELATIVE|INDEXED|FILE|FD|SD|LABEL|VALUE\\s+OF|LINAGE|BLOCK|CONTAINS|RECORDS|RECORDING|DEPENDING|OCCURS|REDEFINES|RENAMES|JUSTIFIED|SIGN|SYNCHRONIZED|SYNC|PICTURE|PIC|USAGE|COMP|COMPUTATIONAL)(?![\\w-])",
+          "match": "(?i)(?<![\\w-])(SELECT|ASSIGN|ORGANIZATION|ACCESS|MODE|RECORD|KEY|RELATIVE|INDEXED|SEQUENTIAL|RANDOM|DYNAMIC|FILE|FD|SD|LABEL|STATUS|VALUE\\s+OF|VALUE|VALUES|LINAGE|BLOCK|CONTAINS|RECORDS|RECORDING|CHARACTERS|DEPENDING|OCCURS|REDEFINES|RENAMES|JUSTIFIED|JUST|SIGN|SYNCHRONIZED|SYNC|PICTURE|PIC|USAGE|COMP|COMPUTATIONAL|COPY|REPLACE|REPLACING|SUPPRESS|DELIMITED|CONVERTING|COUNT|TALLYING|ORDER|SIZE|INVALID|ERROR|EXCEPTION|LOCK|OVERFLOW|END|AT|ON|OFF|BEFORE|AFTER|PAGE|EOP|DECIMAL-POINT|CURRENCY|SYMBOLIC|PCB|SEGMENT|SEGLENGTH|WHERE|FIELDLENGTH|LENGTH|UPON|CONSOLE|VARIABLE|TIMES|UNTIL)(?![\\w-])",
           "name": "keyword.other.cobol"
         },
 
-        { "match": "(?i)(?<![\\w-])(BINARY|DISPLAY|PACKED-DECIMAL|POINTER|INDEX|NATIONAL|NUMERIC|ALPHABETIC|ALPHANUMERIC|ALPHANUMERIC-EDITED|NUMERIC-EDITED)(?![\\w-])", "name": "storage.type.cobol" },
+        { "match": "(?i)(?<![\\w-])(BINARY|DISPLAY|PACKED-DECIMAL|POINTER|INDEX|NATIONAL|NUMERIC|ALPHABETIC|ALPHANUMERIC|ALPHANUMERIC-EDITED|NUMERIC-EDITED|EXTERNAL|GLOBAL|OPTIONAL)(?![\\w-])", "name": "storage.type.cobol" },
         { "match": "(?i)(?<![\\w-])(COMP-1|COMP-2|COMP-3|COMP-4|COMP-5|COMP-X|COMPUTATIONAL-1|COMPUTATIONAL-2|COMPUTATIONAL-3|COMPUTATIONAL-4|COMPUTATIONAL-5)(?![\\w-])", "name": "storage.type.cobol" },
+        { "match": "(?i)(?<![\\w-])(FILLER|RETURN-CODE)(?![\\w-])", "name": "variable.language.cobol" },
 
-        { "match": "(?i)(?<![\\w-])(SPACE|SPACES|ZERO|ZEROS|ZEROES|HIGH-VALUE|HIGH-VALUES|LOW-VALUE|LOW-VALUES|QUOTE|QUOTES|NULL|NULLS)(?![\\w-])", "name": "constant.language.cobol" },
+        { "match": "(?i)(?<![\\w-])(ALL|TRUE|FALSE|SPACE|SPACES|ZERO|ZEROS|ZEROES|HIGH-VALUE|HIGH-VALUES|LOW-VALUE|LOW-VALUES|QUOTE|QUOTES|NULL|NULLS)(?![\\w-])", "name": "constant.language.cobol" },
 
-        { "match": "(?i)(?<![\\w-])(AND|OR|NOT|EQUAL|GREATER|LESS|THAN|THROUGH|THRU|IN|OF|TO|FROM|BY|WITH|INTO|GIVING|USING|VARYING|ASCENDING|DESCENDING|CORRESPONDING)(?![\\w-])", "name": "keyword.operator.cobol" },
+        { "match": "(?i)(?<![\\w-])(AND|OR|NOT|IS|ARE|EQUAL|GREATER|LESS|THAN|THROUGH|THRU|IN|OF|TO|FROM|BY|WITH|INTO|GIVING|USING|VARYING|UP|DOWN|ASCENDING|DESCENDING|CORRESPONDING)(?![\\w-])", "name": "keyword.operator.cobol" },
 
         { "match": "(?i)(?<![\\w-])FUNCTION(?![\\w-])", "name": "support.function.cobol" },
 
         { "match": "(?<![\\w-])\\d{2}(?![\\w-])", "name": "constant.numeric.cobol.level-number" },
-        { "begin": "\"", "end": "\"", "name": "string.quoted.double.cobol" }
+        {
+          "begin": "\"",
+          "end": "\"",
+          "name": "string.quoted.double.cobol",
+          "patterns": [
+            { "match": "\"\"", "name": "constant.character.escape.cobol" }
+          ]
+        },
+        {
+          "begin": "'",
+          "end": "'",
+          "name": "string.quoted.single.cobol",
+          "patterns": [
+            { "match": "''", "name": "constant.character.escape.cobol" }
+          ]
+        }
       ]
     }
   }

@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "your-publisher",
   "license": "MIT",
   "engines": {
@@ -55,7 +55,17 @@
         "key": "ctrl+/",
         "when": "editorTextFocus && editorLangId == 'cobol85'"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "COBOL 85",
+      "properties": {
+        "cobol85.warnings.blockClosedByPeriod": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show warning BLOCK_CLOSED_BY_PERIOD when IF/EVALUATE blocks are closed by '.' instead of END-IF/END-EVALUATE."
+        }
+      }
+    }
   },
   "devDependencies": {
     "@types/node": "^25.2.3",

@@ -24,6 +24,21 @@ const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 let workspaceFolderPaths: string[] = [];
+let hasConfigurationCapability = false;
+
+type Cobol85Settings = {
+  warnings: {
+    blockClosedByPeriod: boolean;
+  };
+};
+
+const DEFAULT_SETTINGS: Cobol85Settings = {
+  warnings: {
+    blockClosedByPeriod: true,
+  },
+};
+
+let currentSettings: Cobol85Settings = DEFAULT_SETTINGS;
 
 let tsInitPromise: Promise<void> | null = null;
 let tsParser: TSParser | null = null;
@@ -108,6 +123,8 @@ type ValidateProfile = {
 let lastPublishedUris = new Set<string>();
 
 connection.onInitialize((params: InitializeParams): InitializeResult => {
+  hasConfigurationCapability = !!params.capabilities.workspace?.configuration;
+
   workspaceFolderPaths = (params.workspaceFolders ?? [])
     .map((wf) => fsPathFromUri(wf.uri))
     .filter((p): p is string => !!p);
@@ -137,6 +154,8 @@ connection.onInitialized(async () => {
     // ignore
   }
 
+  await refreshSettings();
+
   await connection.client.register(DidChangeWatchedFilesNotification.type, {
     watchers: [
       { globPattern: "**/*.{cpy,CPY,cob,COB,cbl,CBL}" },
@@ -144,6 +163,11 @@ connection.onInitialized(async () => {
       { globPattern: "**/COPYBOOKS/**/*.{cpy,CPY,cob,COB,cbl,CBL}" },
     ],
   });
+});
+
+connection.onDidChangeConfiguration(async () => {
+  await refreshSettings();
+  for (const d of documents.all()) scheduleValidate(d.uri, 0, true);
 });
 
 connection.onDidChangeWatchedFiles(() => {
@@ -407,7 +431,7 @@ async function validateDocument(doc: TextDocument, epoch: number, forceParser: b
           pushDiag(diagsByUri, mapped.uri, {
             severity: DiagnosticSeverity.Warning,
             range: mapped.range,
-            message: "Viele Syntaxfehler (Tree-sitter). Anzeige wurde begrenzt â€“ erster Fehler ist weiter unten markiert.",
+            message: "Viele Syntaxfehler (Tree-sitter). Anzeige wurde begrenzt Ã¢â‚¬â€œ erster Fehler ist weiter unten markiert.",
             source: "cobol85",
             code: "TS_ERROR_THROTTLED"
           });
@@ -477,6 +501,7 @@ async function validateDocument(doc: TextDocument, epoch: number, forceParser: b
   const genDiags = lintPreprocessed(pre.text);
   for (const gd of genDiags) {
     if (isValidateStale(doc.uri, epoch)) return;
+    if (gd.code === "BLOCK_CLOSED_BY_PERIOD" && !currentSettings.warnings.blockClosedByPeriod) continue;
 
     const mapped = mapGenRange(pre, gd.startOff, gd.endOff);
     if (!mapped) continue;
@@ -519,6 +544,35 @@ function publishDiagnostics(diagsByUri: Map<string, Diagnostic[]>) {
   }
 }
 
+function coerceSettings(raw: any): Cobol85Settings {
+  const fromNested = raw?.warnings?.blockClosedByPeriod;
+  const fromFlat = raw?.["warnings.blockClosedByPeriod"];
+  const blockClosedByPeriod =
+    typeof fromNested === "boolean" ? fromNested :
+      typeof fromFlat === "boolean" ? fromFlat :
+        DEFAULT_SETTINGS.warnings.blockClosedByPeriod;
+
+  return {
+    warnings: {
+      blockClosedByPeriod,
+    },
+  };
+}
+
+async function refreshSettings(): Promise<void> {
+  if (!hasConfigurationCapability) {
+    currentSettings = DEFAULT_SETTINGS;
+    return;
+  }
+
+  try {
+    const raw = await connection.workspace.getConfiguration("cobol85");
+    currentSettings = coerceSettings(raw);
+  } catch {
+    currentSettings = DEFAULT_SETTINGS;
+  }
+}
+
 type NormalizationAdjustment = {
   sourceStart: number;
   sourceEnd: number;
@@ -551,8 +605,9 @@ function normalizeForCobol85Parser(text72: string): NormalizedParserText {
   const normalizedLines = [...sourceLines];
   const adjustments: NormalizationAdjustment[] = [];
 
-  // Dokumentationsparagraphen in IDENTIFICATION DIVISION
-  const docParas = /^(AUTHOR|DATE-COMPILED|DATE-WRITTEN|INSTALLATION|REMARKS|SECURITY)\./i;
+  // Dokumentationsparagraphen in IDENTIFICATION DIVISION.
+  // Einige Altbestaende nutzen statt "." ein "," nach dem Schluesselwort.
+  const docParas = /^(AUTHOR|DATE-COMPILED|DATE-WRITTEN|INSTALLATION|REMARKS|SECURITY)\s*[.,]/i;
 
   let sourceOff = 0;
   let normalizedOff = 0;
@@ -609,6 +664,15 @@ function isListingControlStatement(langTrim: string): boolean {
 function isCompilerDirectiveStatement(langTrim: string): boolean {
   // Compiler options/directives are not executable COBOL syntax for the parser.
   return /^(CBL|PROCESS)\b/i.test(langTrim);
+}
+
+function isCompilerDirectiveLine(full: string): boolean {
+  // Tolerate both classic fixed-area placement and left-aligned variants.
+  const leftTrimmed = full.trimStart();
+  if (isCompilerDirectiveStatement(leftTrimmed) || isListingControlStatement(leftTrimmed)) return true;
+  if (!hasFixedColumns(full)) return false;
+  const fixedLangTrimmed = full.slice(7).trimStart();
+  return isCompilerDirectiveStatement(fixedLangTrimmed) || isListingControlStatement(fixedLangTrimmed);
 }
 
 function neutralizeListingControlLine(line: string, isFixed: boolean): string {
@@ -771,7 +835,7 @@ type LineSlice = {
   isFixed: boolean;
   indicator: string;   // col 7 when fixed
   langStart: number;   // char offset in full where lang area starts
-  lang: string;        // the extracted â€œparse textâ€ of the line
+  lang: string;        // the extracted Ã¢â‚¬Å“parse textÃ¢â‚¬Â of the line
   isComment: boolean;
 };
 
@@ -844,7 +908,7 @@ class PreBuilder {
     const startOff = this.off;
     this.parts.push(text);
 
-    // segments Ã¼bernehmen, offsets shiften
+    // segments ÃƒÂ¼bernehmen, offsets shiften
     for (const s of pre.segments) {
       this.segs.push({
         ...s,
@@ -879,6 +943,34 @@ function normalizeFixedLineForParser(line72: string, indicator: string, isCommen
   return line72;
 }
 
+function appendOriginalLineForParser(builder: PreBuilder, uri: string, sl: LineSlice): void {
+  if (sl.isComment) {
+    if (sl.isFixed) {
+      const line72 = sl.full.slice(0, 72);
+      const muted = normalizeFixedLineForParser(line72, sl.indicator, true);
+      builder.appendSourceLine(uri, sl.lineNo, 0, muted, line72.length);
+    } else {
+      builder.appendSourceLine(uri, sl.lineNo, 0, "", sl.full.length);
+    }
+    return;
+  }
+
+  if (sl.isFixed && !isValidFixedIndicator(sl.indicator)) {
+    builder.appendSourceLine(uri, sl.lineNo, 0, "", sl.full.length);
+    return;
+  }
+
+  if (sl.isFixed) {
+    const line72 = sl.full.slice(0, 72);
+    const normalized = normalizeFixedLineForParser(line72, sl.indicator, false);
+    builder.appendSourceLine(uri, sl.lineNo, 0, normalized, line72.length);
+    return;
+  }
+
+  // Strict fixed-mode: invalid short lines are neutralized for parser stability.
+  builder.appendSourceLine(uri, sl.lineNo, 0, "", sl.full.length);
+}
+
 function preprocessUri(args: {
   uri: string;
   text: string;
@@ -897,7 +989,7 @@ function preprocessUri(args: {
   while (i < slices.length) {
     const sl = slices[i];
 
-    // Kommentarzeilen nicht parsen; nur Zeilenstruktur fÃ¼r Mapping erhalten.
+    // Kommentarzeilen nicht parsen; nur Zeilenstruktur fÃƒÂ¼r Mapping erhalten.
     if (sl.isComment) {
       if (sl.isFixed) {
         const line72 = sl.full.slice(0, 72);
@@ -930,7 +1022,7 @@ function preprocessUri(args: {
         if (copyStmts.length === 0) {
           for (const seg of stmt.segs) {
             const sl2 = slices[seg.lineNo];
-            builder.appendSourceLine(uri, seg.lineNo, seg.langStart, seg.text, sl2.full.length);
+            appendOriginalLineForParser(builder, uri, sl2);
           }
           i = stmt.lastLine + 1;
           continue;
@@ -943,7 +1035,7 @@ function preprocessUri(args: {
             pushDiag(diagsByUri, uri, {
               severity: DiagnosticSeverity.Warning,
               range: mapStmtTextRangeToDocRange(stmt, c.copyKeywordRange),
-              message: "COPY-Statement ohne '.' (Punkt). Expansion kann unzuverlÃ¤ssig sein.",
+              message: "COPY-Statement ohne '.' (Punkt). Expansion kann unzuverlÃƒÂ¤ssig sein.",
               source: "cobol85",
               code: "COPY_MISSING_PERIOD",
             });
@@ -951,12 +1043,12 @@ function preprocessUri(args: {
             // Fallback: Originalzeilen durchreichen (damit nichts verschwindet)
             for (const seg of stmt.segs) {
               const sl2 = slices[seg.lineNo];
-              builder.appendSourceLine(uri, seg.lineNo, seg.langStart, seg.text, sl2.full.length);
+              appendOriginalLineForParser(builder, uri, sl2);
             }
             continue;
           }
 
-          // 1) Resolve copybook (WICHTIG: baseDirs um aktuellen Datei-Ordner ergÃ¤nzen!)
+          // 1) Resolve copybook (WICHTIG: baseDirs um aktuellen Datei-Ordner ergÃƒÂ¤nzen!)
           const uriFs = fsPathFromUri(uri);
           const thisDir = uriFs ? path.dirname(uriFs) : undefined;
           const resolveDirs = thisDir ? [thisDir, ...baseDirs] : baseDirs;
@@ -972,10 +1064,10 @@ function preprocessUri(args: {
               code: "COPYBOOK_NOT_FOUND",
             });
 
-            // Copybook fehlt -> Originalzeilen durchreichen (kein â€œText verschluckenâ€)
+            // Copybook fehlt -> Originalzeilen durchreichen (kein Ã¢â‚¬Å“Text verschluckenÃ¢â‚¬Â)
             for (const seg of stmt.segs) {
               const sl2 = slices[seg.lineNo];
-              builder.appendSourceLine(uri, seg.lineNo, seg.langStart, seg.text, sl2.full.length);
+              appendOriginalLineForParser(builder, uri, sl2);
             }
             continue;
           }
@@ -992,7 +1084,7 @@ function preprocessUri(args: {
             // Originalzeilen durchreichen
             for (const seg of stmt.segs) {
               const sl2 = slices[seg.lineNo];
-              builder.appendSourceLine(uri, seg.lineNo, seg.langStart, seg.text, sl2.full.length);
+              appendOriginalLineForParser(builder, uri, sl2);
             }
             continue;
           }
@@ -1007,7 +1099,7 @@ function preprocessUri(args: {
             });
             for (const seg of stmt.segs) {
               const sl2 = slices[seg.lineNo];
-              builder.appendSourceLine(uri, seg.lineNo, seg.langStart, seg.text, sl2.full.length);
+              appendOriginalLineForParser(builder, uri, sl2);
             }
             continue;
           }
@@ -1027,7 +1119,7 @@ function preprocessUri(args: {
             pushDiag(diagsByUri, uri, {
               severity: DiagnosticSeverity.Warning,
               range: mapStmtTextRangeToDocRange(stmt, c.replacingKeywordRange),
-              message: "REPLACING gefunden, aber keine gÃ¼ltigen 'FROM BY TO' Paare erkannt.",
+              message: "REPLACING gefunden, aber keine gÃƒÂ¼ltigen 'FROM BY TO' Paare erkannt.",
               source: "cobol85",
               code: "COPY_REPLACING_EMPTY",
             });
@@ -1045,7 +1137,7 @@ function preprocessUri(args: {
             });
             for (const seg of stmt.segs) {
               const sl2 = slices[seg.lineNo];
-              builder.appendSourceLine(uri, seg.lineNo, seg.langStart, seg.text, sl2.full.length);
+              appendOriginalLineForParser(builder, uri, sl2);
             }
             continue;
           }
@@ -1096,15 +1188,8 @@ function preprocessUri(args: {
       }
     }
 
-    // Normal line: fixed-format fÃ¼r Parser sanft normalisieren
-    if (sl.isFixed) {
-      const line72 = sl.full.slice(0, 72);
-      const normalized = normalizeFixedLineForParser(line72, sl.indicator, false);
-      builder.appendSourceLine(uri, sl.lineNo, 0, normalized, line72.length);
-    } else {
-      // Strict fixed-mode: invalid short lines are neutralized for parser stability.
-      builder.appendSourceLine(uri, sl.lineNo, 0, "", sl.full.length);
-    }
+    // Normal line: fixed-format fÃƒÂ¼r Parser sanft normalisieren
+    appendOriginalLineForParser(builder, uri, sl);
     i++;
   }
 
@@ -1316,7 +1401,7 @@ function parseCopyStatements(text: string): CopyStmt[] {
     if (nameTok.kind === "pseudo" && nameTok.closed === false) {
       errors.push({
         code: "COPY_PSEUDOTEXT_UNCLOSED",
-        message: "Unclosed Pseudotext: erwartet abschlieÃŸendes '=='.",
+        message: "Unclosed Pseudotext: erwartet abschlieÃƒÅ¸endes '=='.",
         range: { start: nameTok.start, end: nameTok.end },
       });
     }
@@ -1347,7 +1432,7 @@ function parseCopyStatements(text: string): CopyStmt[] {
     if (!stmt.terminatedByDot) {
       errors.push({
         code: "COPY_MISSING_PERIOD",
-        message: "COPY-Statement ohne '.' (Punkt). Expansion kann unzuverlÃ¤ssig sein.",
+        message: "COPY-Statement ohne '.' (Punkt). Expansion kann unzuverlÃƒÂ¤ssig sein.",
         range: stmt.copyKeywordRange,
       });
     }
@@ -1386,7 +1471,7 @@ function parseCopyStatements(text: string): CopyStmt[] {
         if (fromTok.kind === "pseudo" && fromTok.closed === false) {
           errors.push({
             code: "COPY_PSEUDOTEXT_UNCLOSED",
-            message: "Unclosed Pseudotext: erwartet abschlieÃŸendes '=='.",
+            message: "Unclosed Pseudotext: erwartet abschlieÃƒÅ¸endes '=='.",
             range: { start: fromTok.start, end: fromTok.end },
           });
         }
@@ -1420,7 +1505,7 @@ function parseCopyStatements(text: string): CopyStmt[] {
         if (toTok.kind === "pseudo" && toTok.closed === false) {
           errors.push({
             code: "COPY_PSEUDOTEXT_UNCLOSED",
-            message: "Unclosed Pseudotext: erwartet abschlieÃŸendes '=='.",
+            message: "Unclosed Pseudotext: erwartet abschlieÃƒÅ¸endes '=='.",
             range: { start: toTok.start, end: toTok.end },
           });
         }
@@ -1563,7 +1648,7 @@ function applyReplacingToFixedText(
         stats[i].count += r.count;
       }
 
-      // Language area klassisch 65 chars (8-72). Wir halten das â€œhalbwegsâ€ stabil:
+      // Language area klassisch 65 chars (8-72). Wir halten das Ã¢â‚¬Å“halbwegsÃ¢â‚¬Â stabil:
       const langFixed = lang.padEnd(65, " ").slice(0, 65);
 
       outLines.push(prefix + langFixed);
@@ -1677,7 +1762,7 @@ function loadTextCached(fullPath: string): string | undefined {
 function summarizeDirs(dirs: string[], max: number): string {
   if (dirs.length <= max) return dirs.join(", ");
   const shown = dirs.slice(0, max).join(", ");
-  return `${shown}, â€¦ (+${dirs.length - max} weitere)`;
+  return `${shown}, Ã¢â‚¬Â¦ (+${dirs.length - max} weitere)`;
 }
 
 function fsPathFromUri(uri: string): string | undefined {
@@ -1727,6 +1812,7 @@ function basicFixedFormatChecks(uri: string, text: string, diagsByUri: Map<strin
 
     // Strict fixed-mode: every non-empty line must have fixed columns incl. indicator.
     if (full.trim().length === 0) continue;
+    if (isCompilerDirectiveLine(full)) continue;
 
     if (!hasFixedColumns(full)) {
       pushDiag(diagsByUri, uri, {
@@ -2013,6 +2099,7 @@ function lintPreprocessed(text: string): GenDiag[] {
 
   lintDataDivisionEntryPeriods(text, diags);
   lintProcedureVerbTypos(text, diags);
+  lintVsamStatusCobol85Checks(text, diags);
 
   // ---- Unclosed blocks at EOF
   for (let i = stack.length - 1; i >= 0; i--) {
@@ -2025,7 +2112,7 @@ function lintPreprocessed(text: string): GenDiag[] {
       endOff: f.startOff + f.tokenLen,
       severity: DiagnosticSeverity.Error,
       code: "UNCLOSED_BLOCK",
-      message: `${f.kind} erÃ¶ffnet, aber kein ${expected} gefunden.`,
+      message: `${f.kind} erÃƒÂ¶ffnet, aber kein ${expected} gefunden.`,
     });
   }
 
@@ -2111,6 +2198,17 @@ function lintProcedureVerbTypos(text: string, diags: GenDiag[]): void {
 
   const maybeClauseLeaders = new Set([
     "AT", "NOT", "ON", "INVALID", "SIZE", "WITH", "OR", "AND",
+    "USING", "GIVING", "INTO", "TO", "FROM", "BY", "VARYING", "UNTIL", "TIMES",
+    "THROUGH", "THRU", "END", "EOP", "PAGE", "OVERFLOW", "KEY", "ERROR",
+    "EXCEPTION", "MODE", "LOCK", "RECORD", "RECORDS", "REPLACING", "CONVERTING",
+    "COUNT", "DELIMITED", "POINTER", "TALLYING", "ORDER", "OFF", "IS", "ARE",
+    "IN", "OF", "ASCENDING", "DESCENDING", "INDEXED", "DEPENDING", "SUPPRESS",
+    "ACCESS", "ASSIGN", "ORGANIZATION", "SELECT", "FILE", "STATUS", "RELATIVE",
+    "SEQUENTIAL", "RANDOM", "DYNAMIC", "LINAGE", "LABEL", "BLOCK", "CONTAINS",
+    "CHARACTERS", "RECORDING", "AFTER", "BEFORE", "DECIMAL-POINT", "CURRENCY",
+    "SYMBOLIC", "FILE-CONTROL", "I-O-CONTROL", "SPECIAL-NAMES", "SOURCE-COMPUTER",
+    "OBJECT-COMPUTER", "PCB", "SEGMENT", "SEGLENGTH", "WHERE", "FIELDLENGTH",
+    "LENGTH", "UPON", "CONSOLE", "VARIABLE", "INPUT", "OUTPUT", "I-O", "EXTEND",
   ]);
 
   const knownVerbsForSuggestion = [
@@ -2120,6 +2218,87 @@ function lintProcedureVerbTypos(text: string, diags: GenDiag[]): void {
     "OPEN", "PERFORM", "READ", "RELEASE", "RETURN", "REWRITE", "SEARCH", "SET",
     "SORT", "START", "STOP", "STRING", "SUBTRACT", "UNSTRING", "WRITE",
   ];
+
+  const removedCobol74Keywords = new Map<string, string>([
+    ["TRANSFORM", "INSPECT ... CONVERTING"],
+    ["EXAMINE", "INSPECT"],
+    ["ENTER", "CALL"],
+    ["READY", "modernes Debugging (TRACE-Verben sind in COBOL 85 nicht standard)"],
+    ["RESET", "modernes Debugging (TRACE-Verben sind in COBOL 85 nicht standard)"],
+    ["TRACE", "modernes Debugging (TRACE-Verben sind in COBOL 85 nicht standard)"],
+    ["NOTE", "Kommentarzeile mit *> (free) oder * in Spalte 7 (fixed)"],
+  ]);
+
+  for (const line of lines) {
+    const langStart = line.length >= 7 ? 7 : 0;
+    const lang = line.slice(langStart);
+    const trimmedStartLen = lang.length - lang.trimStart().length;
+    const trimmed = lang.trim();
+    const lineCodeStart = off + langStart + trimmedStartLen;
+
+    if (/^(IDENTIFICATION|ENVIRONMENT|DATA)\s+DIVISION\b/i.test(trimmed)) {
+      inProcedureDivision = false;
+    } else if (/^PROCEDURE\s+DIVISION\b/i.test(trimmed)) {
+      inProcedureDivision = true;
+      off += line.length + 1;
+      continue;
+    }
+
+    if (isCompilerDirectiveLine(line)) {
+      off += line.length + 1;
+      continue;
+    }
+
+    if (inProcedureDivision && trimmed.length > 0) {
+      // Paragraph/Section labels are not executable statement verbs.
+      if (!/^[A-Z0-9-]+\s*(SECTION)?\s*\.$/i.test(trimmed)) {
+        const m = /^([A-Z][A-Z0-9-]*)\b/i.exec(trimmed);
+        if (m) {
+          const token = m[1].toUpperCase();
+
+          const isKnown =
+            knownStatementLeaders.has(token) ||
+            maybeClauseLeaders.has(token);
+
+          if (!isKnown && /^[A-Z]+$/.test(token)) {
+            const replacement = removedCobol74Keywords.get(token);
+            if (replacement) {
+              diags.push({
+                startOff: lineCodeStart,
+                endOff: lineCodeStart + token.length,
+                severity: DiagnosticSeverity.Error,
+                code: "COBOL74_KEYWORD_REMOVED",
+                message: `COBOL-74-Schluesselwort ${token} ist in COBOL 85 nicht zulaessig. Ersatz: ${replacement}.`,
+              });
+              off += line.length + 1;
+              continue;
+            }
+
+            const suggestion = suggestProcedureVerb(token, knownVerbsForSuggestion);
+            const message = suggestion
+              ? `Unbekanntes COBOL-Statement: ${token}. Meintest du ${suggestion}?`
+              : `Unbekanntes COBOL-Statement: ${token}.`;
+
+            diags.push({
+              startOff: lineCodeStart,
+              endOff: lineCodeStart + token.length,
+              severity: DiagnosticSeverity.Error,
+              code: "PROCEDURE_VERB_UNKNOWN",
+              message,
+            });
+          }
+        }
+      }
+    }
+
+    off += line.length + 1;
+  }
+}
+
+function lintVsamStatusCobol85Checks(text: string, diags: GenDiag[]): void {
+  const lines = text.split("\n");
+  let inProcedureDivision = false;
+  let off = 0;
 
   for (const line of lines) {
     const langStart = line.length >= 7 ? 7 : 0;
@@ -2137,27 +2316,22 @@ function lintProcedureVerbTypos(text: string, diags: GenDiag[]): void {
     }
 
     if (inProcedureDivision && trimmed.length > 0) {
-      // Paragraph/Section labels are not executable statement verbs.
+      // Paragraph/Section labels are not executable statements.
       if (!/^[A-Z0-9-]+\s*(SECTION)?\s*\.$/i.test(trimmed)) {
-        const m = /^([A-Z][A-Z0-9-]*)\b/i.exec(trimmed);
-        if (m) {
-          const token = m[1].toUpperCase();
+        const lit00 = /['"]00['"]/i.exec(trimmed);
+        if (lit00 && looksLikeVsamStatusContext(trimmed)) {
+          const hasSuccessRange = /['"]00['"]\s*(THRU|THROUGH)\s*['"]09['"]/i.test(trimmed);
+          const hasOtherSuccessCodes = /['"]0[1-9]['"]/i.test(trimmed);
 
-          const isKnown =
-            knownStatementLeaders.has(token) ||
-            maybeClauseLeaders.has(token);
-
-          if (!isKnown && /^[A-Z]+$/.test(token)) {
-            const suggestion = suggestProcedureVerb(token, knownVerbsForSuggestion);
-            if (suggestion) {
-              diags.push({
-                startOff: lineCodeStart,
-                endOff: lineCodeStart + token.length,
-                severity: DiagnosticSeverity.Error,
-                code: "PROCEDURE_VERB_UNKNOWN",
-                message: `Unbekanntes COBOL-Statement: ${token}. Meintest du ${suggestion}?`,
-              });
-            }
+          if (!hasSuccessRange && !hasOtherSuccessCodes && hasLegacyStatus00Comparison(trimmed)) {
+            const litStart = lineCodeStart + (lit00.index ?? 0);
+            diags.push({
+              startOff: litStart,
+              endOff: litStart + lit00[0].length,
+              severity: DiagnosticSeverity.Warning,
+              code: "VSAM_RETURN_CODE_74_CHECK",
+              message: "COBOL 85: Bei VSAM gilt '00' THRU '09' als OK. Pruefe nicht nur auf '00'.",
+            });
           }
         }
       }
@@ -2165,6 +2339,18 @@ function lintProcedureVerbTypos(text: string, diags: GenDiag[]): void {
 
     off += line.length + 1;
   }
+}
+
+function looksLikeVsamStatusContext(line: string): boolean {
+  return /\b(?:RETURN-CO(?:DE)?|FILE-?STATUS|IO-?STATUS|VSAM(?:-?[A-Z0-9-]*)?|[A-Z0-9-]*STATUS)\b/i.test(line);
+}
+
+function hasLegacyStatus00Comparison(line: string): boolean {
+  const patterns = [
+    /\b[A-Z][A-Z0-9-]*\b\s*(?:IS\s+)?(?:NOT\s+)?(?:=|EQUAL\s+TO)\s*['"]00['"]/i,
+    /['"]00['"]\s*(?:IS\s+)?(?:NOT\s+)?(?:=|EQUAL\s+TO)\s*\b[A-Z][A-Z0-9-]*\b/i,
+  ];
+  return patterns.some((re) => re.test(line));
 }
 
 function suggestProcedureVerb(token: string, knownVerbs: string[]): string | undefined {
@@ -2687,7 +2873,7 @@ function scanLintTokens(text: string): LintTok[] {
       continue;
     }
 
-    // Stringliterale fÃ¼r die Keyword-Erkennung auslassen.
+    // Stringliterale fÃƒÂ¼r die Keyword-Erkennung auslassen.
     if (ch === "'" || ch === "\"") {
       const quote = ch;
       i++;
