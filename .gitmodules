@@ -1,0 +1,3 @@
+[submodule "vendor/tree-sitter-cobol"]
+	path = vendor/tree-sitter-cobol
+	url = https://github.com/yutaro-sakamoto/tree-sitter-cobol
