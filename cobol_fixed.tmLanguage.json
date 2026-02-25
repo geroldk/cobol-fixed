@@ -1,0 +1,182 @@
+{
+	"name": "COBOL 85 (Fixed Format)",
+	"scopeName": "source.cobol.fixed",
+	"fileTypes": [
+		"cbl",
+		"cob",
+		"cpy"
+	],
+	"patterns": [
+		{
+			"comment": "1. Priorität: Ganze Zeile als Kommentar, wenn Spalte 7 ein * oder / ist",
+			"match": "^(.{6})([*/])(.*)($)",
+			"captures": {
+				"1": { "name": "comment.line-number.cobol" },
+				"2": { "name": "comment.indicator.cobol" },
+				"3": { "name": "comment.line.cobol" },
+				"4": { "name": "comment.block.identification-area.cobol" }
+			}
+		},
+		{
+			"comment": "3. Priorität: Der Nummern-Bereich (Spalte 1-6)",
+			"match": "^.{6}",
+			"name": "comment.line-number.cobol"
+		},
+		{
+			"comment": "4. Priorität: Indikator-Spalte (Spalte 7)",
+			"match": "(?<=^.{6}).",
+			"name": "constant.character.indicator.cobol"
+		},
+		{
+			"comment": "5. Priorität: Der eigentliche Code (Spalte 8-72)",
+			"include": "#cobol_code"
+		}
+	],
+	"repository": {
+		"cobol_code": {
+			"patterns": [
+				{
+					"include": "#column_overflow"
+				},
+				{
+					"include": "#identification_area"
+				},
+				{
+					"include": "#section_labels"
+				},
+				{
+					"include": "#labels"
+				},
+				{
+					"include": "#picture_clause"
+				},
+				{
+					"include": "#strings"
+				},
+				{
+					"include": "#strings_single"
+				},
+				{
+					"include": "#comments_inline"
+				},
+				{
+					"include": "#keywords"
+				},
+				{
+					"include": "#numbers"
+				}
+			]
+		},
+		"picture_clause": {
+			"comment": "Behandelt PIC Strings (z.B. 9(4) oder X(10)) als Einheit, damit 9 nicht als Zahl gefärbt wird.",
+			"match": "(?<![\\w-])(PIC|PICTURE)(\\s+IS)?\\s+([A-Za-z0-9()\\$\\*\\+\\-\\,\\./]*?[^\\.\\s])(?=\\.|\\s|$)",
+			"captures": {
+				"1": { "name": "storage.type.cobol" },
+				"2": { "name": "keyword.other.clause.cobol" },
+				"3": { "name": "string.unquoted.picture.cobol" }
+			}
+		},
+		"column_overflow": {
+			"comment": "Spalten 81+ sind Fehler (Out of bounds).",
+			"match": "(?<=^.{80}).+",
+			"name": "invalid.illegal.cobol"
+		},
+		"identification_area": {
+			"comment": "Identifikationsbereich (Spalte 73-80).",
+			"match": "(?<=^.{72}).{0,8}",
+			"name": "comment.block.identification-area.cobol"
+		},
+		"labels": {
+			"comment": "Paragraph labels with blank indicator column (column 7), starting in Area A and ending with a period.",
+			"match": "^.{6}[ ](?=[A-Za-z])([A-Za-z][A-Za-z0-9-]*)\\s*\\.(?=\\s|$)",
+			"captures": {
+				"1": { "name": "entity.name.label.cobol" }
+			}
+		},
+		"section_labels": {
+			"comment": "Section labels with blank indicator column (column 7), starting in Area A and ending with 'SECTION.'.",
+			"match": "^.{6}[ ](?=[A-Za-z])([A-Za-z][A-Za-z0-9-]*)\\s+SECTION\\s*\\.(?=\\s|$)",
+			"captures": {
+				"1": { "name": "entity.name.section.cobol" }
+			}
+		},
+		"strings": {
+			"name": "string.quoted.double.cobol",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.cobol",
+					"match": "\"\""
+				}
+			]
+		},
+		"strings_single": {
+			"name": "string.quoted.single.cobol",
+			"begin": "'",
+			"end": "'",
+			"patterns": [
+				{
+					"name": "constant.character.escape.cobol",
+					"match": "''"
+				}
+			]
+		},
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.cobol",
+					"match": "(?<![A-Za-z0-9-])EXEC\\s+DLI(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.control.cobol",
+					"match": "(?<![A-Za-z0-9-])(PROGRAM-ID|AUTHOR|INSTALLATION|DATE-WRITTEN|DATE-COMPILED|SECURITY)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.control.cobol",
+					"match": "(?<![A-Za-z0-9-])(IDENTIFICATION|ENVIRONMENT|DATA|PROCEDURE)\\s+DIVISION(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.control.section.cobol",
+					"match": "(?<![A-Za-z0-9-])(CONFIGURATION|INPUT-OUTPUT|FILE|WORKING-STORAGE|LOCAL-STORAGE|LINKAGE)\\s+SECTION(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.control.import.cobol",
+					"match": "(?<![A-Za-z0-9-])(COPY|REPLACE)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.verb.cobol",
+					"match": "(?<![A-Za-z0-9-])(ACCEPT|ADD|ALTER|CALL|CANCEL|CLOSE|COMPUTE|CONTINUE|DELETE|DISPLAY|DIVIDE|ENTER|EVALUATE|EXIT|GO(\\s+TO)?|IF|INITIALIZE|INSPECT|MERGE|MOVE|MULTIPLY|OPEN|PERFORM|READ|RELEASE|RETURN|REWRITE|SEARCH|SET|SORT|START|STOP|STRING|SUBTRACT|UNSTRING|WRITE)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.verb.cobol",
+					"match": "(?<![A-Za-z0-9-])(DLET|GHN|GHNP|GHU|GN|GNP|GU|ISRT|PURG|REPL)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.control.flow.cobol",
+					"match": "(?<![A-Za-z0-9-])(ELSE|END-EXEC|END-IF|END-PERFORM|END-EVALUATE|END-READ|END-WRITE|END-STRING|END-UNSTRING|END-ADD|END-SUBTRACT|END-MULTIPLY|END-DIVIDE|END-COMPUTE|END-CALL|END-SEARCH|END-START|WHEN|THEN|ALSO|NEXT\\s+SENTENCE)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "keyword.other.clause.cobol",
+					"match": "(?<![A-Za-z0-9-])(USING|GIVING|INTO|TO|FROM|BY|VARYING|UNTIL|TIMES|THROUGH|THRU|AT|END|EOP|PAGE|OVERFLOW|INVALID|KEY|NOT|AND|OR|SIZE|ERROR|EXCEPTION|MODE|LOCK|RECORD|RECORDS|REPLACING|CONVERTING|COUNT|DELIMITED|POINTER|TALLYING|ORDER|OFF|ON|WITH|IS|ARE|IN|OF|ASCENDING|DESCENDING|INDEXED|DEPENDING|SUPPRESS|ACCESS|ASSIGN|ORGANIZATION|SELECT|FILE|STATUS|RELATIVE|SEQUENTIAL|RANDOM|DYNAMIC|LINAGE|LABEL|BLOCK|CONTAINS|CHARACTERS|RECORDING|ALPHABETIC|ALPHANUMERIC|NUMERIC|AFTER|BEFORE|DECIMAL-POINT|CURRENCY|SYMBOLIC|FILE-CONTROL|I-O-CONTROL|SPECIAL-NAMES|SOURCE-COMPUTER|OBJECT-COMPUTER|PCB|SEGMENT|SEGLENGTH|WHERE|FIELDLENGTH)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "storage.type.cobol",
+					"match": "(?<![A-Za-z0-9-])(PIC|PICTURE|USAGE|COMP|COMP-3|BINARY|PACKED-DECIMAL|DISPLAY|INDEX|VALUE|OCCURS|REDEFINES|RENAMES|BLANK\\s+WHEN\\s+ZERO|JUSTIFIED|JUST|SYNCHRONIZED|SYNC|EXTERNAL|GLOBAL|OPTIONAL)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "support.constant.cobol",
+					"match": "(?<![A-Za-z0-9-])(ZERO|ZEROS|ZEROES|SPACE|SPACES|HIGH-VALUE|HIGH-VALUES|LOW-VALUE|LOW-VALUES|QUOTE|QUOTES|ALL|NULL|NULLS)(?![A-Za-z0-9-])"
+				},
+				{
+					"name": "variable.language.cobol",
+					"match": "(?<![A-Za-z0-9-])(FILLER)(?![A-Za-z0-9-])"
+				}
+			]
+		},
+		"numbers": {
+			"name": "constant.numeric.cobol",
+			"match": "(?<![\\w-])\\d+(\\.\\d+)?(?![\\w-])"
+		}
+	}
+}

@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Packaged extension artifacts
+*.vsix
+*.tgz
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local editor settings
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db

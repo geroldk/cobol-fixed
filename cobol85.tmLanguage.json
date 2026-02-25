@@ -1,0 +1,167 @@
+{
+  "scopeName": "source.cobol85",
+  "name": "COBOL 85 (Fixed Format)",
+  "patterns": [
+    { "include": "#fixedCommentLine" },
+    { "include": "#fixedDebugLine" },
+    { "include": "#fixedContinuationLine" },
+    { "include": "#fixedInvalidIndicatorLine" },
+    { "include": "#fixedNormalLine" },
+    { "match": "^.{0,6}$", "name": "invalid.illegal.cobol.fixed.too-short" }
+  ],
+  "repository": {
+    "fixedCommentLine": {
+      "begin": "^(?=.{7})(.{6})([*/])",
+      "beginCaptures": {
+        "1": { "name": "meta.cobol.fixed.line-number" },
+        "2": { "name": "punctuation.definition.comment.cobol.fixed.indicator" }
+      },
+      "end": "$",
+      "name": "meta.cobol.fixed.line.comment",
+      "patterns": [
+        { "include": "#languageAreaAsComment" },
+        { "include": "#identificationArea" },
+        { "include": "#overflowArea" }
+      ]
+    },
+
+    "fixedDebugLine": {
+      "begin": "^(?=.{7})(.{6})([Dd])",
+      "beginCaptures": {
+        "1": { "name": "meta.cobol.fixed.line-number" },
+        "2": { "name": "keyword.other.cobol.fixed.debug-indicator" }
+      },
+      "end": "$",
+      "name": "meta.cobol.fixed.line.debug",
+      "patterns": [
+        { "include": "#languageAreaAsDebug" },
+        { "include": "#identificationArea" },
+        { "include": "#overflowArea" }
+      ]
+    },
+
+    "fixedContinuationLine": {
+      "begin": "^(?=.{7})(.{6})(-)",
+      "beginCaptures": {
+        "1": { "name": "meta.cobol.fixed.line-number" },
+        "2": { "name": "keyword.other.cobol.fixed.continuation-indicator" }
+      },
+      "end": "$",
+      "name": "meta.cobol.fixed.line.continuation",
+      "patterns": [
+        { "include": "#languageAreaNormal" },
+        { "include": "#identificationArea" },
+        { "include": "#overflowArea" }
+      ]
+    },
+
+    "fixedInvalidIndicatorLine": {
+      "begin": "^(?=.{7})(.{6})([^ \\*\\/\\-Dd])",
+      "beginCaptures": {
+        "1": { "name": "meta.cobol.fixed.line-number" },
+        "2": { "name": "invalid.illegal.cobol.fixed.indicator" }
+      },
+      "end": "$",
+      "name": "meta.cobol.fixed.line.invalid-indicator",
+      "patterns": [
+        { "include": "#languageAreaNormal" },
+        { "include": "#identificationArea" },
+        { "include": "#overflowArea" }
+      ]
+    },
+
+    "fixedNormalLine": {
+      "begin": "^(?=.{7})(.{6})(.)",
+      "beginCaptures": {
+        "1": { "name": "meta.cobol.fixed.line-number" },
+        "2": { "name": "meta.cobol.fixed.indicator" }
+      },
+      "end": "$",
+      "name": "meta.cobol.fixed.line",
+      "patterns": [
+        { "include": "#languageAreaNormal" },
+        { "include": "#identificationArea" },
+        { "include": "#overflowArea" }
+      ]
+    },
+
+    "languageAreaAsComment": {
+      "begin": "(?<=^.{7})",
+      "end": "(?<=^.{72})|$",
+      "contentName": "comment.line.cobol.fixed",
+      "patterns": [
+        { "match": "(?<![\\w-])(TODO|FIXME|HACK)(?![\\w-])", "name": "keyword.other.todo" }
+      ]
+    },
+
+    "languageAreaAsDebug": {
+      "begin": "(?<=^.{7})",
+      "end": "(?<=^.{72})|$",
+      "contentName": "comment.line.cobol.fixed.debug",
+      "patterns": [
+        { "match": "(?<![\\w-])(TODO|FIXME)(?![\\w-])", "name": "keyword.other.todo" }
+      ]
+    },
+
+    "languageAreaNormal": {
+      "begin": "(?<=^.{7})",
+      "end": "(?<=^.{72})|$",
+      "contentName": "meta.cobol.fixed.language-area",
+      "patterns": [
+        { "include": "#cobolTokens" }
+      ]
+    },
+
+    "identificationArea": {
+      "begin": "(?<=^.{72})",
+      "end": "(?<=^.{80})|$",
+      "contentName": "meta.cobol.fixed.identification-area",
+      "patterns": []
+    },
+
+    "overflowArea": {
+      "begin": "(?<=^.{80})",
+      "end": "$",
+      "contentName": "invalid.illegal.cobol.fixed.overflow",
+      "patterns": []
+    },
+
+    "cobolTokens": {
+      "patterns": [
+        { "match": "(?i)(?<![\\w-])STOP\\s+RUN(?![\\w-])", "name": "keyword.control.cobol" },
+        { "match": "(?i)(?<![\\w-])GO\\s+TO(?![\\w-])", "name": "keyword.control.cobol" },
+        {
+          "match": "(?i)(?<![\\w-])END-(ACCEPT|ADD|CALL|COMPUTE|DELETE|DISPLAY|DIVIDE|EVALUATE|IF|MULTIPLY|PERFORM|READ|RETURN|REWRITE|SEARCH|START|STRING|SUBTRACT|UNSTRING|WRITE)(?![\\w-])",
+          "name": "keyword.control.cobol"
+        },
+        {
+          "match": "(?i)(?<![\\w-])(ACCEPT|ADD|ALTER|CALL|CANCEL|CLOSE|COMPUTE|CONTINUE|DELETE|DISPLAY|DIVIDE|EVALUATE|EXIT|GOBACK|GO|IF|ELSE|THEN|WHEN|PERFORM|READ|REWRITE|WRITE|OPEN|MOVE|MULTIPLY|SUBTRACT|STRING|UNSTRING|INSPECT|INITIALIZE|SEARCH|SET|SORT|MERGE|RELEASE|RETURN|START|STOP|USE|NEXT|SENTENCE)(?![\\w-])",
+          "name": "keyword.control.cobol"
+        },
+
+        { "match": "(?i)(?<![\\w-])(IDENTIFICATION|ENVIRONMENT|DATA|PROCEDURE)\\s+DIVISION(?![\\w-])", "name": "keyword.other.cobol" },
+        { "match": "(?i)(?<![\\w-])(SECTION|PARAGRAPH|DECLARATIVES|END\\s*DECLARATIVES)(?![\\w-])", "name": "keyword.other.cobol" },
+        { "match": "(?i)(?<![\\w-])(PROGRAM-ID|AUTHOR|INSTALLATION|DATE-WRITTEN|DATE-COMPILED|SECURITY|REMARKS)(?![\\w-])", "name": "keyword.other.cobol" },
+        { "match": "(?i)(?<![\\w-])(CONFIGURATION|SOURCE-COMPUTER|OBJECT-COMPUTER|SPECIAL-NAMES|INPUT-OUTPUT|FILE-CONTROL|I-O-CONTROL)(?![\\w-])", "name": "keyword.other.cobol" },
+        { "match": "(?i)(?<![\\w-])(FILE\\s+SECTION|WORKING-STORAGE\\s+SECTION|LINKAGE\\s+SECTION|COMMUNICATION\\s+SECTION|REPORT\\s+SECTION|SCREEN\\s+SECTION)(?![\\w-])", "name": "keyword.other.cobol" },
+
+        {
+          "match": "(?i)(?<![\\w-])(SELECT|ASSIGN|ORGANIZATION|ACCESS|MODE|RECORD|KEY|RELATIVE|INDEXED|FILE|FD|SD|LABEL|VALUE\\s+OF|LINAGE|BLOCK|CONTAINS|RECORDS|RECORDING|DEPENDING|OCCURS|REDEFINES|RENAMES|JUSTIFIED|SIGN|SYNCHRONIZED|SYNC|PICTURE|PIC|USAGE|COMP|COMPUTATIONAL)(?![\\w-])",
+          "name": "keyword.other.cobol"
+        },
+
+        { "match": "(?i)(?<![\\w-])(BINARY|DISPLAY|PACKED-DECIMAL|POINTER|INDEX|NATIONAL|NUMERIC|ALPHABETIC|ALPHANUMERIC|ALPHANUMERIC-EDITED|NUMERIC-EDITED)(?![\\w-])", "name": "storage.type.cobol" },
+        { "match": "(?i)(?<![\\w-])(COMP-1|COMP-2|COMP-3|COMP-4|COMP-5|COMP-X|COMPUTATIONAL-1|COMPUTATIONAL-2|COMPUTATIONAL-3|COMPUTATIONAL-4|COMPUTATIONAL-5)(?![\\w-])", "name": "storage.type.cobol" },
+
+        { "match": "(?i)(?<![\\w-])(SPACE|SPACES|ZERO|ZEROS|ZEROES|HIGH-VALUE|HIGH-VALUES|LOW-VALUE|LOW-VALUES|QUOTE|QUOTES|NULL|NULLS)(?![\\w-])", "name": "constant.language.cobol" },
+
+        { "match": "(?i)(?<![\\w-])(AND|OR|NOT|EQUAL|GREATER|LESS|THAN|THROUGH|THRU|IN|OF|TO|FROM|BY|WITH|INTO|GIVING|USING|VARYING|ASCENDING|DESCENDING|CORRESPONDING)(?![\\w-])", "name": "keyword.operator.cobol" },
+
+        { "match": "(?i)(?<![\\w-])FUNCTION(?![\\w-])", "name": "support.function.cobol" },
+
+        { "match": "(?<![\\w-])\\d{2}(?![\\w-])", "name": "constant.numeric.cobol.level-number" },
+        { "begin": "\"", "end": "\"", "name": "string.quoted.double.cobol" }
+      ]
+    }
+  }
+}

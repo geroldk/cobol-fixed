@@ -1,0 +1,71 @@
+{
+  "name": "cobol-fixed",
+  "displayName": "COBOL Fixed Format",
+  "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
+  "version": "0.0.1",
+  "publisher": "your-publisher",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "main": "./client/out/extension.js",
+  "scripts": {
+    "build:cobol-wasm": "cd vendor/tree-sitter-cobol && npx tree-sitter generate && cd ../.. && npx tree-sitter build --wasm --docker vendor/tree-sitter-cobol --output server/assets/tree-sitter-cobol.wasm",
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p client/ && tsc -p server/",
+    "watch": "tsc -watch -b client server"
+  },
+  "activationEvents": [
+    "onLanguage:cobol85"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "cobol85",
+        "aliases": [
+          "COBOL 85",
+          "COBOL",
+          "cobol85",
+          "cobol"
+        ],
+        "extensions": [
+          ".cob",
+          ".cbl",
+          ".cpy"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cobol85",
+        "_scopeName": "source.cobol.fixed",
+        "scopeName": "source.cobol85",
+        "path": "./cobol85.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "cobol85.toggleFixedComment",
+        "title": "COBOL 85: Toggle Fixed-Format Comment (Column 7)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "cobol85.toggleFixedComment",
+        "key": "ctrl+/",
+        "when": "editorTextFocus && editorLangId == 'cobol85'"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/vscode": "^1.109.0",
+    "tree-sitter-cli": "^0.25.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12",
+    "web-tree-sitter": "^0.25.0"
+  }
+}
