@@ -4,6 +4,7 @@
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
   "version": "0.0.1",
   "publisher": "your-publisher",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.109.0"
   },
