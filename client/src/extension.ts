@@ -77,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
       );
     }
   );
-  context.subscriptions.push
+  context.subscriptions.push(disposable);
   // ---- LSP Client boot
   const serverModule = context.asAbsolutePath(
     path.join("server", "out", "server.js")

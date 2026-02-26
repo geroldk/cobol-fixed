@@ -169,7 +169,7 @@
         { "match": "(?<![\\w-])\\d{2}(?![\\w-])", "name": "constant.numeric.cobol.level-number" },
         {
           "begin": "\"",
-          "end": "\"",
+          "end": "\"|$",
           "name": "string.quoted.double.cobol",
           "patterns": [
             { "match": "\"\"", "name": "constant.character.escape.cobol" }
@@ -177,7 +177,7 @@
         },
         {
           "begin": "'",
-          "end": "'",
+          "end": "'|$",
           "name": "string.quoted.single.cobol",
           "patterns": [
             { "match": "''", "name": "constant.character.escape.cobol" }
