@@ -2,6 +2,24 @@
 
 Kompletter Verlauf von "Stunde 0" bis jetzt.
 
+## [0.0.3] - 2026-02-26
+
+### Added
+- Neue Architektur- und Umsetzungsdokumentation in `ANALYSIS.md`.
+- Modularisierte Server-Implementierung mit dedizierten LSP-Modulen (`completion.ts`, `definition.ts`, `hover.ts`, `references.ts`, `rename.ts`, `semantic-tokens.ts`, `dead-code.ts`, `symbols.ts`, `lint.ts`, `preprocessor.ts`, `normalizer.ts`, `utils.ts`, `parser-bridge.ts`).
+- Umfangreiche Unit-Tests fuer alle Kernmodule (`13` Testdateien, `158` Tests).
+
+### Changed
+- Versionserhoehung von `0.0.2` auf `0.0.3` (`package.json`, `package-lock.json`).
+- `server/src/server.ts` auf Orchestrierung reduziert; Fachlogik in Module ausgelagert.
+- `README.md` erweitert und um Doku-Links auf `ANALYSIS.md` sowie `CHANGLOG.md` ergaenzt.
+- Parser- und Highlighting-Artefakte aktualisiert (`server/assets/tree-sitter-cobol.wasm`, `cobol85.tmLanguage.json`, `language-configuration.json`).
+
+### Fixed
+- Hover und Semantic Tokens nutzen jetzt konsistent den COPY-expandierten Analysekontext.
+- Dead-Code-Analyse behandelt `PERFORM ... THRU/THROUGH` ohne False-Positives.
+- Symbol-Ranges fuer Outline folgen der LSP-Erwartung (Containerbereich inkl. Kinder).
+
 ## [0.0.2] - 2026-02-25
 
 ### Added
@@ -42,23 +60,3 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 - `8d2c621` Add THIRD-PARTY-LICENSES.md initial plan
 - `fe555e2` Add THIRD-PARTY-LICENSES.md and set license field in package.json
 - `46ac949` Merge pull request #1 from geroldk/copilot/check-license-requirements
-
-## Vollstaendige Timeline (Commit fuer Commit)
-
-| # | Zeitpunkt | Commit | Autor | Beschreibung |
-|---|---|---|---|---|
-| 1 | 2026-02-25T16:22:52+01:00 | `90c6c3e` | gerold | inital |
-| 2 | 2026-02-25T16:35:12+01:00 | `c7b32c4` | gerold | Add COBOL extension sources and .gitignore |
-| 3 | 2026-02-25T19:20:12+01:00 | `aa90795` | gerold | Update vendor/tree-sitter-cobol submodule |
-| 4 | 2026-02-25T19:35:17+01:00 | `791a307` | gerold | new  url |
-| 5 | 2026-02-25T18:40:03+00:00 | `ed52f03` | copilot-swe-agent[bot] | Initial plan |
-| 6 | 2026-02-25T18:41:58+00:00 | `8d2c621` | copilot-swe-agent[bot] | Add THIRD-PARTY-LICENSES.md initial plan |
-| 7 | 2026-02-25T18:42:38+00:00 | `fe555e2` | copilot-swe-agent[bot] | Add THIRD-PARTY-LICENSES.md and set license field in package.json |
-| 8 | 2026-02-25T19:43:52+01:00 | `46ac949` | Gerold | Merge pull request #1 from geroldk/copilot/check-license-requirements |
-| 9 | 2026-02-25T22:55:28+01:00 | `013edb5` | gerold | Add configurable BLOCK_CLOSED_BY_PERIOD warning, bump version to 0.0.2, and refresh parser/docs |
-
-## Submodul-Verlauf (`vendor/tree-sitter-cobol`)
-
-- Initialer Pointer im Hauptrepo: `e99dbdc`
-- Update in Hauptrepo-Commit `aa90795`: `e99dbdc` -> `7a813b`
-- Update in Hauptrepo-Commit `013edb5`: `7a813b` -> `f766bdd`

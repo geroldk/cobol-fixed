@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "your-publisher",
   "license": "MIT",
   "engines": {
@@ -13,12 +13,21 @@
     "build:cobol-wasm": "cd vendor/tree-sitter-cobol && npx tree-sitter generate && cd ../.. && npx tree-sitter build --wasm --docker vendor/tree-sitter-cobol --output server/assets/tree-sitter-cobol.wasm",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p client/ && tsc -p server/",
-    "watch": "tsc -watch -b client server"
+    "watch": "tsc -watch -b client server",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "activationEvents": [
     "onLanguage:cobol85"
   ],
   "contributes": {
+    "configurationDefaults": {
+      "[cobol85]": {
+        "editor.wordBasedSuggestions": "off",
+        "editor.suggest.showWords": false,
+        "editor.suggest.showInlineDetails": true
+      }
+    },
     "languages": [
       {
         "id": "cobol85",
@@ -32,7 +41,8 @@
           ".cob",
           ".cbl",
           ".cpy"
-        ]
+        ],
+        "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
@@ -63,6 +73,17 @@
           "type": "boolean",
           "default": true,
           "description": "Show warning BLOCK_CLOSED_BY_PERIOD when IF/EVALUATE blocks are closed by '.' instead of END-IF/END-EVALUATE."
+        },
+        "cobol85.copybookPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "copybooks",
+            "COPYBOOKS"
+          ],
+          "description": "Relative or absolute directories to search for COPY books. Relative paths are resolved from each workspace folder."
         }
       }
     }
@@ -71,7 +92,8 @@
     "@types/node": "^25.2.3",
     "@types/vscode": "^1.109.0",
     "tree-sitter-cli": "^0.25.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1",
