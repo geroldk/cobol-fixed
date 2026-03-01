@@ -23,3 +23,7 @@ pnpm-debug.log*
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Local reference material (do not track in repo)
+specs/**/*.pdf
+specs/**/*.PDF
