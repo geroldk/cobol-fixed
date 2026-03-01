@@ -21,8 +21,9 @@ import {
   wordAtPosition,
   buildDefinitionIndex,
   DefinitionIndex,
-  SymbolDef,
   findSymbolInIndex,
+  getQualifiers,
+  resolveSymbolAtOccurrence,
 } from "./definition";
 
 // ---- Reference result ----
@@ -48,18 +49,34 @@ export function findAllOccurrences(
   text: string,
   symbolName: string,
 ): ReferenceLocation[] {
-  const upper = symbolName.toUpperCase();
-  const lines = text.split(/\r?\n/);
-  const results: ReferenceLocation[] = [];
+  return findAllOccurrencesBatch(text, new Set([symbolName.toUpperCase()])).get(symbolName.toUpperCase()) ?? [];
+}
 
+/**
+ * Scans all code lines in `text` ONCE and collects occurrences of all given
+ * names simultaneously.  This is O(L × W) regardless of how many names are
+ * requested — a massive speedup over calling findAllOccurrences per-name
+ * on large files.
+ *
+ * @param text   Full (preprocessed) COBOL text
+ * @param names  Set of UPPERCASED symbol names to look for
+ * @returns      Map from name → list of occurrences
+ */
+export function findAllOccurrencesBatch(
+  text: string,
+  names: Set<string>,
+): Map<string, ReferenceLocation[]> {
+  const result = new Map<string, ReferenceLocation[]>();
+  for (const name of names) result.set(name, []);
+
+  const lines = text.split(/\r?\n/);
   for (let lineNo = 0; lineNo < lines.length; lineNo++) {
     const full = lines[lineNo];
     if (!hasFixedColumns(full)) continue;
     const indicator = full[6];
     if (!isValidFixedIndicator(indicator) || isFixedCommentIndicator(indicator)) continue;
-    if (indicator === "-") continue; // continuation line
+    if (indicator === "-") continue;
 
-    // Scan lang area only (cols 8-72)
     const langStart = 7;
     const langEnd = Math.min(full.length, 72);
     const lang = full.slice(langStart, langEnd);
@@ -67,20 +84,17 @@ export function findAllOccurrences(
     COBOL_WORD_RE.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = COBOL_WORD_RE.exec(lang)) !== null) {
-      if (m[0].toUpperCase() === upper) {
+      const upper = m[0].toUpperCase();
+      const arr = result.get(upper);
+      if (arr) {
         const charStart = langStart + m.index;
         const charEnd = charStart + m[0].length;
-        results.push({
-          uri: "",
-          line: lineNo,
-          character: charStart,
-          endCharacter: charEnd,
-        });
+        arr.push({ uri: "", line: lineNo, character: charStart, endCharacter: charEnd });
       }
     }
   }
 
-  return results;
+  return result;
 }
 
 /**
@@ -104,6 +118,18 @@ export function isDefinitionSite(
     if (d.line === occ.line && d.character === occ.character) return true;
   }
   return false;
+}
+
+/**
+ * Build a Set of definition-site keys for O(1) lookup.
+ * Used by dead-code analysis to avoid O(P+S+D) per-occurrence checks.
+ */
+export function buildDefinitionSiteSet(index: DefinitionIndex): Set<string> {
+  const sites = new Set<string>();
+  for (const p of index.paragraphs) sites.add(`${p.line}:${p.character}`);
+  for (const s of index.sections) sites.add(`${s.line}:${s.character}`);
+  for (const d of index.dataItems) sites.add(`${d.line}:${d.character}`);
+  return sites;
 }
 
 /**
@@ -140,15 +166,37 @@ export function buildReferences(
   const scanDoc = preDoc ?? doc;
   const scanIndex = preIndex ?? buildDefinitionIndex(doc);
 
-  // Check that the word is a known symbol
-  const sym = findSymbolInIndex(word, scanIndex);
-  if (!sym) return [];
+  const targetSym = scanDoc === doc
+    ? resolveSymbolAtOccurrence(
+      scanDoc,
+      scanIndex,
+      word,
+      position.line,
+      wordInfo.start,
+      wordInfo.end,
+    )
+    : findSymbolInIndex(word, scanIndex, getQualifiers(doc, position.line, wordInfo.end));
+  if (!targetSym) return [];
 
   // Find all occurrences in the scan document
   const occurrences = findAllOccurrences(scanDoc.getText(), word);
   const results: Location[] = [];
 
   for (const occ of occurrences) {
+    // Check if this occurrence resolves to the same target symbol
+    const occSym = resolveSymbolAtOccurrence(
+      scanDoc,
+      scanIndex,
+      word,
+      occ.line,
+      occ.character,
+      occ.endCharacter,
+    );
+    
+    if (!occSym || occSym.line !== targetSym.line || occSym.character !== targetSym.character) {
+      continue;
+    }
+
     const isDef = isDefinitionSite(occ, scanIndex);
     if (isDef && !includeDeclaration) continue;
 

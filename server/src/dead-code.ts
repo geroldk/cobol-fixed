@@ -26,7 +26,7 @@ import {
   SectionDef,
 } from "./definition";
 
-import { findAllOccurrences, isDefinitionSite } from "./references";
+import { findAllOccurrencesBatch, buildDefinitionSiteSet } from "./references";
 
 import { GenDiag } from "./types";
 
@@ -118,6 +118,19 @@ export function findDeadCode(
   const thruRanges = findPerformThruRanges(text);
   const thruReferenced = collectThruReferencedParagraphs(thruRanges, idx.paragraphs);
 
+  // Build the set of all names to search for in one pass
+  const namesToCheck = new Set<string>();
+  for (const p of idx.paragraphs) namesToCheck.add(p.name);
+  for (const s of idx.sections) namesToCheck.add(s.name);
+
+  // Single-pass scan: find all occurrences of all names simultaneously (O(L×W))
+  const occurrencesByName = findAllOccurrencesBatch(text, namesToCheck);
+
+  // Build definition-site lookup set for O(1) checks
+  const defSites = buildDefinitionSiteSet(idx);
+  const isDefSite = (occ: { line: number; character: number }) =>
+    defSites.has(`${occ.line}:${occ.character}`);
+
   // Check each paragraph
   for (const p of idx.paragraphs) {
     // Skip the entry paragraph
@@ -126,9 +139,8 @@ export function findDeadCode(
     // Skip paragraphs referenced via PERFORM THRU ranges
     if (thruReferenced.has(p.name)) continue;
 
-    const occurrences = findAllOccurrences(text, p.name);
-    // Filter out the definition site itself
-    const references = occurrences.filter(occ => !isDefinitionSite(occ, idx));
+    const occurrences = occurrencesByName.get(p.name) ?? [];
+    const references = occurrences.filter(occ => !isDefSite(occ));
 
     if (references.length === 0) {
       dead.push({
@@ -143,9 +155,8 @@ export function findDeadCode(
 
   // Check each section
   for (const s of idx.sections) {
-    const occurrences = findAllOccurrences(text, s.name);
-    // Filter out the definition site
-    const references = occurrences.filter(occ => !isDefinitionSite(occ, idx));
+    const occurrences = occurrencesByName.get(s.name) ?? [];
+    const references = occurrences.filter(occ => !isDefSite(occ));
 
     // Also filter out the "SECTION." keyword usage on the definition line
     // (buildDefinitionIndex already handles this, so isDefinitionSite catches it)

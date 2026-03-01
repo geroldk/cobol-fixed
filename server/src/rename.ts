@@ -28,6 +28,8 @@ import {
   buildDefinitionIndex,
   DefinitionIndex,
   findSymbolInIndex,
+  getQualifiers,
+  resolveSymbolAtOccurrence,
 } from "./definition";
 
 import { findAllOccurrences } from "./references";
@@ -78,7 +80,14 @@ export function prepareRename(
 
   // Only allow renaming known symbols (paragraphs, sections, data items)
   const idx = index ?? buildDefinitionIndex(doc);
-  const sym = findSymbolInIndex(wordInfo.word, idx);
+  const sym = resolveSymbolAtOccurrence(
+    doc,
+    idx,
+    wordInfo.word,
+    position.line,
+    wordInfo.start,
+    wordInfo.end,
+  );
   if (!sym) return undefined;
 
   return {
@@ -127,8 +136,17 @@ export function performRename(
   const scanIndex = preIndex ?? buildDefinitionIndex(doc);
 
   // Only rename known symbols
-  const sym = findSymbolInIndex(word, scanIndex);
-  if (!sym) return undefined;
+  const targetSym = scanDoc === doc
+    ? resolveSymbolAtOccurrence(
+      scanDoc,
+      scanIndex,
+      word,
+      position.line,
+      wordInfo.start,
+      wordInfo.end,
+    )
+    : findSymbolInIndex(word, scanIndex, getQualifiers(doc, position.line, wordInfo.end));
+  if (!targetSym) return undefined;
 
   // Find all occurrences (including definition)
   const occurrences = findAllOccurrences(scanDoc.getText(), word);
@@ -141,6 +159,20 @@ export function performRename(
   const changes: Map<string, TextEdit[]> = new Map();
 
   for (const occ of occurrences) {
+    // Check if this occurrence resolves to the same target symbol
+    const occSym = resolveSymbolAtOccurrence(
+      scanDoc,
+      scanIndex,
+      word,
+      occ.line,
+      occ.character,
+      occ.endCharacter,
+    );
+    
+    if (!occSym || occSym.line !== targetSym.line || occSym.character !== targetSym.character) {
+      continue;
+    }
+
     if (mapToSource) {
       const startOff = scanDoc.offsetAt({ line: occ.line, character: occ.character });
       const endOff = scanDoc.offsetAt({ line: occ.line, character: occ.endCharacter });

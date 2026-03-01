@@ -1,59 +1,104 @@
 # COBOL Fixed Format (VS Code Extension)
 
-COBOL Fixed Format is a Visual Studio Code extension focused on COBOL 85 fixed-format workflows.
-Current version: `0.0.3`.
+COBOL Fixed Format is a VS Code extension for COBOL 85 fixed-format workflows.
+Current package version: `0.0.4`.
 
-It combines:
-- COBOL 85 syntax highlighting (TextMate grammar)
-- A language server for diagnostics (Tree-sitter based)
-- A fixed-format helper command to toggle column-7 comments
+It combines TextMate highlighting, a Tree-sitter based language server, and fixed-format editing helpers.
 
-## Features
+## Highlights
 
 - Language id: `cobol85`
 - File extensions: `.cob`, `.cbl`, `.cpy`
-- Command: `COBOL 85: Toggle Fixed-Format Comment (Column 7)`
-- Default keybinding: `Ctrl+/` (when `editorLangId == cobol85`)
-- Parser backend: Tree-sitter COBOL WASM (`server/assets/tree-sitter-cobol.wasm`)
+- Fixed-format command: `COBOL 85: Toggle Fixed-Format Comment (Column 7)` (`Ctrl+/`)
+- Tree-sitter parser backend: `server/assets/tree-sitter-cobol.wasm`
+- Copybook-aware analysis pipeline (COPY expansion + source mapping)
+- Context-aware support for `EXEC DLI` and `EXEC CICS` in:
+  - diagnostics
+  - completion
+  - semantic tokens
+  - hover behavior
+- LSP features:
+  - document symbols
+  - go to definition (including COPY books)
+  - hover
+  - references
+  - rename (with qualifier-aware resolution)
+  - semantic tokens
+
+## Diagnostics and Analysis
+
+The server runs a multi-stage validation pipeline:
+
+1. fixed-format baseline checks
+2. COPY/REPLACE preprocessing
+3. parser normalization
+4. Tree-sitter parse + syntax diagnostics
+5. lint diagnostics
+6. dead-code analysis (unreferenced paragraphs/sections)
+7. undefined-identifier diagnostics
+
+Implemented linting covers, among others:
+
+- COBOL procedure verb typo detection
+- Data Division structure checks
+- `EXEC DLI` command/clause validation
+- `EXEC CICS` command/option/condition validation
+- optional warning `BLOCK_CLOSED_BY_PERIOD`
 
 ## Settings
 
-- `cobol85.warnings.blockClosedByPeriod` (boolean, default: `true`)
-  Controls warning `BLOCK_CLOSED_BY_PERIOD` for blocks closed by `.` instead of `END-IF`/`END-EVALUATE`.
+### `cobol85.warnings.blockClosedByPeriod`
 
-Example (`settings.json`):
+- Type: `boolean`
+- Default: `true`
+- Controls warning `BLOCK_CLOSED_BY_PERIOD` when IF/EVALUATE blocks are closed by `.` instead of `END-IF` / `END-EVALUATE`.
+
+### `cobol85.copybookPaths`
+
+- Type: `string[]`
+- Default: `["copybooks", "COPYBOOKS"]`
+- Additional relative or absolute directories used for COPY book resolution.
+- Relative paths are resolved from each workspace folder.
+
+Example `settings.json`:
 
 ```json
 {
-  "cobol85.warnings.blockClosedByPeriod": false
+  "cobol85.warnings.blockClosedByPeriod": false,
+  "cobol85.copybookPaths": [
+    "copybooks",
+    "COPYBOOKS",
+    "C:/host/copylib"
+  ]
 }
 ```
 
 ## Requirements
 
 - VS Code `^1.109.0`
-- Node.js and npm (recommended: current LTS)
-- Docker (only needed when rebuilding the COBOL Tree-sitter WASM)
+- Node.js + npm (current LTS recommended)
+- Docker (only needed for rebuilding the COBOL Tree-sitter WASM)
 
 ## Installation
 
-### Install from VSIX (recommended for users)
+### Install from VSIX
 
-If you already have `cobol-fixed-0.0.3.vsix`:
+If you already have `cobol-fixed-0.0.4.vsix`:
 
-1. In VS Code, open `Extensions` view.
-2. Click `...` (top-right menu) -> `Install from VSIX...`.
-3. Select `cobol-fixed-0.0.3.vsix`.
+1. Open VS Code `Extensions`.
+2. Open the `...` menu.
+3. Choose `Install from VSIX...`.
+4. Select `cobol-fixed-0.0.4.vsix`.
 
 CLI alternative:
 
 ```bash
-code --install-extension cobol-fixed-0.0.3.vsix
+code --install-extension cobol-fixed-0.0.4.vsix
 ```
 
-### Install from source (development)
+### Install from source
 
-1. Clone the repository with submodules:
+1. Clone with submodules:
 
 ```bash
 git clone --recurse-submodules <your-repo-url>
@@ -72,51 +117,55 @@ git submodule update --init --recursive
 npm install
 ```
 
-3. Build client and server:
+3. Build:
 
 ```bash
 npm run compile
 ```
 
-4. Optional: rebuild COBOL parser WASM (needed after grammar changes):
+4. Run tests:
+
+```bash
+npm run test
+```
+
+5. Optional: rebuild COBOL parser WASM (after grammar changes):
 
 ```bash
 npm run build:cobol-wasm
 ```
 
-5. Start extension debugging in VS Code:
+6. Start extension debugging in VS Code:
 - Open this folder in VS Code
 - Press `F5` to launch an Extension Development Host
 
+## Developer Workflow
+
+Useful scripts:
+
+- `npm run compile` - build client + server
+- `npm run test` - run Vitest suite
+- `npm run test:watch` - watch mode tests
+- `npm run build:cobol-wasm` - regenerate parser WASM
+- `npm run changelog:update` - refresh auto snapshot in `CHANGELOG.md`
+
+Key code locations:
+
+- Client entry: `client/src/extension.ts`
+- Server entry/orchestration: `server/src/server.ts`
+- Core modules: `server/src/*.ts`
+- TextMate grammars:
+  - `cobol85.tmLanguage.json`
+  - `cobol_fixed.tmLanguage.json`
+- Tree-sitter grammar source: `vendor/tree-sitter-cobol/grammar.js`
+
 ## Documentation
 
-- [ANALYSIS.md](./ANALYSIS.md): architecture notes, bug analysis, and implementation plan.
-- [CHANGLOG.md](./CHANGLOG.md): release notes index (spelling alias).
-- [CHANGELOG.md](./CHANGELOG.md): canonical changelog.
-
-## Development Notes
-
-- Main extension entry: `client/src/extension.ts`
-- Language server: `server/src/server.ts`
-- Tree-sitter grammar source: `vendor/tree-sitter-cobol/grammar.js`
-- TextMate grammar: `cobol85.tmLanguage.json`
-
-When changing Tree-sitter grammar:
-
-1. Update `vendor/tree-sitter-cobol/grammar.js`
-2. Regenerate grammar files:
-
-```bash
-cd vendor/tree-sitter-cobol
-npx tree-sitter generate
-```
-
-3. Rebuild WASM:
-
-```bash
-cd ../..
-npm run build:cobol-wasm
-```
+- [ANALYSIS.md](./ANALYSIS.md) - technical architecture and verification status
+- [CHANGELOG.md](./CHANGELOG.md) - canonical changelog
+- [CHANGLOG.md](./CHANGLOG.md) - spelling alias forwarding to `CHANGELOG.md`
+- `docs/EXEC_CICS_SYNTAX_SPEC.md` - CICS syntax reference used for lint/completion rules
+- `docs/DLI_CALL_EXEC_SYNTAX_SPEC.md` - DLI syntax reference used for lint/completion rules
 
 ## License
 

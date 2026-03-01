@@ -56,6 +56,7 @@ import {
   shouldRequireIdentificationDivision,
   hasIdentificationDivision,
   lintPreprocessed,
+  lintUndefinedIdentifiers,
   collectExecDliRanges,
   overlapsAnyRange,
 } from "./lint";
@@ -675,7 +676,7 @@ function maybeLogValidateProfile(uri: string, p: ValidateProfile, diagCount: num
   const msg =
     `[validate] ${file}: total=${fmtMs(p.totalMs)}ms ` +
     `(basic=${fmtMs(p.basicMs)}, preprocess=${fmtMs(p.preprocessMs)}, parserInit=${fmtMs(p.parserInitMs)}, ` +
-    `parser=${fmtMs(p.parserMs)}, lint=${fmtMs(p.lintMs)}, publish=${fmtMs(p.publishMs)}), ` +
+    `parser=${fmtMs(p.parserMs)}, lint=${fmtMs(p.lintMs)}, deadCode=${fmtMs(p.deadCodeMs)}, publish=${fmtMs(p.publishMs)}), ` +
     `diags=${diagCount}, preLen=${p.preTextLen}${suffix}`;
 
   if (slow) connection.console.warn(msg);
@@ -693,6 +694,7 @@ async function validateDocument(doc: TextDocument, epoch: number, forceParser: b
     parserInitMs: 0,
     parserMs: 0,
     lintMs: 0,
+    deadCodeMs: 0,
     publishMs: 0,
     totalMs: 0,
     preTextLen: 0,
@@ -877,9 +879,28 @@ async function validateDocument(doc: TextDocument, epoch: number, forceParser: b
   profile.lintMs = performance.now() - lintStart;
 
   // ----- Dead-code analysis (unreferenced paragraphs/sections)
+  const deadCodeStart = performance.now();
   const preDocForDeadCode = TextDocument.create(doc.uri, "cobol85", doc.version, pre.text);
-  const deadCodeDiags = lintDeadCode(preDocForDeadCode);
+  const preIndex = buildDefinitionIndex(preDocForDeadCode);
+  const deadCodeDiags = lintDeadCode(preDocForDeadCode, preIndex);
   for (const gd of deadCodeDiags) {
+    if (isValidateStale(doc.uri, epoch)) return;
+    const mapped = mapGenRange(pre, gd.startOff, gd.endOff);
+    if (!mapped) continue;
+    pushDiag(diagsByUri, mapped.uri, {
+      severity: gd.severity,
+      range: mapped.range,
+      message: gd.message,
+      source: "cobol85",
+      code: gd.code,
+    });
+  }
+
+  profile.deadCodeMs = performance.now() - deadCodeStart;
+
+  // ----- Undefined-identifier check (reuses preIndex from dead-code)
+  const undefDiags = lintUndefinedIdentifiers(pre.text, preIndex);
+  for (const gd of undefDiags) {
     if (isValidateStale(doc.uri, epoch)) return;
     const mapped = mapGenRange(pre, gd.startOff, gd.endOff);
     if (!mapped) continue;

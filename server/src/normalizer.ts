@@ -86,7 +86,7 @@ export function isListingControlStatement(langTrim: string): boolean {
 
 export function isCompilerDirectiveStatement(langTrim: string): boolean {
   // Compiler options/directives are not executable COBOL syntax for the parser.
-  return /^(CBL|PROCESS)\b/i.test(langTrim);
+  return /^(CBL|PROCESS|BASIS|INSERT|SERVICE|\*CONTROL|\*CBL)\b/i.test(langTrim);
 }
 
 export function isCompilerDirectiveLine(full: string): boolean {

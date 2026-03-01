@@ -33,6 +33,7 @@ export type ValidateProfile = {
   parserInitMs: number;
   parserMs: number;
   lintMs: number;
+  deadCodeMs: number;
   publishMs: number;
   totalMs: number;
   preTextLen: number;
@@ -82,6 +83,15 @@ export type CopyStmt = {
   terminatedByDot: boolean;
   dotRange?: TextRange;
 
+  errors: CopyParseError[];
+};
+
+export type ReplaceStmt = {
+  isOff: boolean;
+  replacing: ReplacingPair[];
+  replaceKeywordRange: TextRange;
+  terminatedByDot: boolean;
+  dotRange?: TextRange;
   errors: CopyParseError[];
 };
 

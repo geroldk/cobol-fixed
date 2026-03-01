@@ -15,3 +15,7 @@ References, Rename (mit Scope-Regeln)
 Completion (Context-aware: Data Division vs Procedure Division)
 
 Call graph / dead code hints
+
+
+kannst du bitte  Phase 6: IBM COBOL for VSE/ESA Kompatibilität (SX26-3834-00) mit 6.1, 6.2 und 6.3 verifizieren? Und den Status in ANALYSIS.md dokumentieren?
+Und allgemein ANALYSIS.md aufräumen und sauber strukturieren.

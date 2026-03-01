@@ -235,3 +235,161 @@ export function findFirstCodeAnchor(text: string): Range {
   }
   return Range.create(0, 0, 0, 1);
 }
+
+// ---- BMS (Basic Mapping Support) map-to-COBOL conversion ----
+
+export type BmsField = { name: string; length: number };
+export type BmsMap = { mapName: string; fields: BmsField[] };
+export type BmsMapset = { mapsetName: string; maps: BmsMap[]; tioapfx: boolean };
+
+/**
+ * Detect whether the given text is a BMS (Basic Mapping Support) assembler
+ * source rather than COBOL.  BMS sources always contain the DFHMSD macro.
+ */
+export function isBmsSource(text: string): boolean {
+  return /\bDFHMSD\b/.test(text);
+}
+
+type BmsStmt = { label: string; op: string; operands: string };
+
+/**
+ * Parse 80-column assembler statements, joining continuation lines
+ * (non-blank column 72).  Returns label / operation / operands per statement.
+ */
+function joinBmsStatements(text: string): BmsStmt[] {
+  const lines = text.split(/\r?\n/);
+  const stmts: BmsStmt[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    // Skip empty lines and assembler comments (col 1 = '*')
+    if (line.length === 0 || line[0] === "*") { i++; continue; }
+
+    const content = line.substring(0, Math.min(line.length, 71)).trimEnd();
+    if (!content.trim() || content.trim() === "END") { i++; continue; }
+
+    let cont = line.length >= 72 ? line[71] : " ";
+
+    // Parse label (starts at col 1; blank = no label)
+    let label = "";
+    let rest = content;
+    if (content[0] !== " ") {
+      const m = content.match(/^(\S+)\s+(.*)/);
+      if (m) { label = m[1]; rest = m[2]; }
+      else { label = content; rest = ""; }
+    } else {
+      rest = content.trimStart();
+    }
+
+    // Parse operation and operands
+    const m2 = rest.match(/^(\S+)\s*(.*)/);
+    const op = m2 ? m2[1].toUpperCase() : "";
+    let operands = m2 ? m2[2].trimEnd() : "";
+
+    // Accumulate continuation lines (col 72 non-blank → next line continues)
+    while (cont !== " " && i + 1 < lines.length) {
+      i++;
+      const nextLine = lines[i];
+      cont = nextLine.length >= 72 ? nextLine[71] : " ";
+      // Continuation operands start at column 16 (0-indexed 15)
+      const contText = nextLine.length > 15
+        ? nextLine.substring(15, Math.min(nextLine.length, 71)).trimEnd()
+        : "";
+      operands += contText;
+    }
+
+    if (op) stmts.push({ label, op, operands });
+    i++;
+  }
+
+  return stmts;
+}
+
+/**
+ * Parse a BMS mapset source into a structured representation.
+ * Returns undefined if the source contains no maps.
+ */
+export function parseBmsMapset(text: string): BmsMapset | undefined {
+  const stmts = joinBmsStatements(text);
+
+  let mapsetName = "";
+  let tioapfx = false;
+  const maps: BmsMap[] = [];
+  let currentMap: BmsMap | undefined;
+
+  for (const stmt of stmts) {
+    if (stmt.op === "DFHMSD") {
+      if (/\bTYPE\s*=\s*FINAL\b/i.test(stmt.operands)) {
+        if (currentMap) { maps.push(currentMap); currentMap = undefined; }
+      } else {
+        mapsetName = stmt.label;
+        tioapfx = /\bTIOAPFX\s*=\s*YES\b/i.test(stmt.operands);
+      }
+    } else if (stmt.op === "DFHMDI") {
+      if (currentMap) maps.push(currentMap);
+      currentMap = { mapName: stmt.label, fields: [] };
+    } else if (stmt.op === "DFHMDF") {
+      if (currentMap && stmt.label) {
+        const m = stmt.operands.match(/\bLENGTH\s*=\s*0*(\d+)/i);
+        const length = m ? parseInt(m[1], 10) : 0;
+        if (length > 0) {
+          currentMap.fields.push({ name: stmt.label, length });
+        }
+      }
+    }
+  }
+
+  if (currentMap) maps.push(currentMap);
+  if (maps.length === 0) return undefined;
+
+  return { mapsetName, maps, tioapfx };
+}
+
+/**
+ * Generate COBOL copybook text from a parsed BMS mapset.
+ *
+ * For each map (DFHMDI label = mapName) with named fields, two 01-levels
+ * are emitted: mapNameI (input) and mapNameO (output, REDEFINES …I).
+ * Each named DFHMDF field with LENGTH>0 produces five 02/03-level items
+ * with suffixes L (length), F (flag), A (attribute), I/O (data).
+ */
+export function generateCobolFromBms(mapset: BmsMapset): string {
+  const lines: string[] = [];
+  const p1 = "       ";         // cols 1-7  (sequence + indicator)
+  const p2 = "           ";     // cols 1-7 + 4-space indent for 02-level
+  const p3 = "               "; // cols 1-7 + 8-space indent for 03-level
+
+  for (const map of mapset.maps) {
+    const iName = map.mapName + "I";
+    const oName = map.mapName + "O";
+
+    // ---- Input map ----
+    lines.push(`${p1}01  ${iName}.`);
+    if (mapset.tioapfx) {
+      lines.push(`${p2}02  FILLER PIC X(12).`);
+    }
+    for (const f of map.fields) {
+      lines.push(`${p2}02  ${f.name}L PIC S9(4) COMP.`);
+      lines.push(`${p2}02  ${f.name}F PIC X.`);
+      lines.push(`${p2}02  FILLER REDEFINES ${f.name}F.`);
+      lines.push(`${p3}03  ${f.name}A PIC X.`);
+      lines.push(`${p2}02  ${f.name}I PIC X(${f.length}).`);
+    }
+
+    // ---- Output map (REDEFINES input) ----
+    lines.push(`${p1}01  ${oName} REDEFINES ${iName}.`);
+    if (mapset.tioapfx) {
+      lines.push(`${p2}02  FILLER PIC X(12).`);
+    }
+    for (const f of map.fields) {
+      lines.push(`${p2}02  ${f.name}L PIC S9(4) COMP.`);
+      lines.push(`${p2}02  ${f.name}F PIC X.`);
+      lines.push(`${p2}02  FILLER REDEFINES ${f.name}F.`);
+      lines.push(`${p3}03  ${f.name}A PIC X.`);
+      lines.push(`${p2}02  ${f.name}O PIC X(${f.length}).`);
+    }
+  }
+
+  return lines.join("\n") + "\n";
+}

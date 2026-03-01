@@ -33,15 +33,16 @@ import {
 export const TOKEN_TYPES = [
   "keyword",      // 0 — COBOL verbs, division/section keywords
   "variable",     // 1 — data names
-  "function",     // 2 — paragraph names
+  "function",     // 2 — paragraph names / CICS command verbs
   "namespace",    // 3 — section names
   "string",       // 4 — string literals
   "number",       // 5 — numeric literals
   "comment",      // 6 — comment lines
   "operator",     // 7 — arithmetic operators
   "macro",        // 8 — COPY statements / compiler directives
-  "type",         // 9 — level numbers, PIC clauses
+  "type",         // 9 — level numbers, PIC clauses, CICS conditions
   "parameter",    // 10 — FILLER, special registers
+  "property",     // 11 — CICS option keywords
 ] as const;
 
 export const TOKEN_MODIFIERS = [
@@ -53,7 +54,7 @@ export const TOKEN_MODIFIERS = [
 // ---- Known COBOL keywords ----
 
 const COBOL_KEYWORDS = new Set([
-  "ACCEPT", "ADD", "ALTER", "CALL", "CANCEL", "CLOSE", "COMPUTE", "CONTINUE",
+  "ACCEPT", "ADD", "ADDRESS", "ALTER", "CALL", "CANCEL", "CLOSE", "COMPUTE", "CONTINUE",
   "DELETE", "DISPLAY", "DIVIDE", "ELSE", "END-EVALUATE", "END-IF",
   "END-PERFORM", "END-READ", "END-RETURN", "END-REWRITE", "END-SEARCH",
   "END-START", "END-STRING", "END-SUBTRACT", "END-UNSTRING", "END-WRITE",
@@ -107,6 +108,123 @@ const SPECIAL_REGISTERS = new Set([
   "QUOTE", "QUOTES",
 ]);
 
+// ---- DLI keyword sets (for EXEC DLI semantic classification) ----
+
+/** DLI function verbs (short codes) — classified as function (2). */
+const DLI_VERBS = new Set([
+  "GU", "GN", "GNP", "GHU", "GHN", "GHNP",
+  "ISRT", "REPL", "DLET", "LOAD",
+  "CHKP", "SCHD", "TERM",
+]);
+
+/**
+ * DLI long-form verb words — each word individually classified as function (2).
+ * Long forms: GET UNIQUE, GET NEXT, GET NEXT IN PARENT,
+ *             GET HOLD UNIQUE, GET HOLD NEXT, GET HOLD NEXT IN PARENT,
+ *             INSERT, REPLACE, DELETE, CHECKPOINT, SCHEDULE, TERMINATE.
+ */
+const DLI_VERB_WORDS = new Set([
+  "GET", "UNIQUE", "NEXT", "IN", "PARENT", "HOLD",
+  "INSERT", "REPLACE", "DELETE",
+  "CHECKPOINT", "SCHEDULE", "TERMINATE",
+]);
+
+/** DLI clause/option keywords — classified as property (11). */
+const DLI_CLAUSE_KEYWORDS = new Set([
+  "USING", "PCB",
+  "SEGMENT", "INTO", "FROM",
+  "WHERE", "FIELDLENGTH", "SEGLENGTH",
+  "KEYFEEDBACK", "FEEDBACKLEN",
+  "OFFSET", "LOCKED",
+  "FIRST", "LAST", "VARIABLE",
+  "PSB", "ID",
+  "AND", "OR",
+]);
+
+// ---- CICS keyword sets (for EXEC CICS semantic classification) ----
+
+const CICS_VERBS = new Set([
+  "READ", "READNEXT", "READPREV", "WRITE", "REWRITE", "DELETE",
+  "START", "STARTBR", "RESETBR", "ENDBR", "UNLOCK",
+  "SEND", "RECEIVE", "LINK", "XCTL", "RETURN", "LOAD", "RELEASE",
+  "CANCEL", "DELAY", "ASKTIME", "FORMATTIME", "RETRIEVE",
+  "GETMAIN", "FREEMAIN", "ABEND", "SUSPEND",
+  "ENQ", "DEQ", "POST", "READQ", "WRITEQ", "DELETEQ",
+  "SYNCPOINT", "HANDLE", "IGNORE", "PUSH", "POP",
+  "DUMP", "ISSUE", "PURGE", "ADDRESS", "ASSIGN",
+  "ENTER", "ROLLBACK",
+]);
+
+const CICS_OPTIONS = new Set([
+  "FILE", "DATASET", "INTO", "SET", "RIDFLD", "RBA", "RRN", "XRBA",
+  "KEYLENGTH", "GENERIC", "GTEQ", "EQUAL", "TOKEN", "LENGTH",
+  "UPDATE", "NOSUSPEND", "CONSISTENT", "SYSID", "REQID",
+  "FROM", "DEBKEY", "DEBREC", "MASSINSERT",
+  "PROGRAM", "COMMAREA", "DATALENGTH", "CHANNEL",
+  "INPUTMSG", "INPUTMSGLEN", "SYNCONRETURN",
+  "TRANSID", "FLENGTH", "ENTRY", "HOLD",
+  "INTERVAL", "TIME", "AFTER", "AT", "RTRANSID", "RTERMID",
+  "QUEUE", "NOCHECK", "FOR", "HOURS", "MINUTES", "SECONDS",
+  "MILLISECS", "UNTIL", "ABSTIME",
+  "MAP", "MAPSET", "DATAONLY", "MAPONLY", "ERASE", "ALARM",
+  "FREEKB", "FRSET", "CURSOR", "WAIT", "LAST", "PAGING",
+  "ASIS", "NOTRUNCATE", "DATA", "DATAPOINTER",
+  "ABCODE", "NODUMP", "RESOURCE", "UOW", "TASK",
+  "MAXLIFETIME", "ECADDR", "BELOW", "INITIMG", "SHARED",
+  "ITEM", "NEXT", "NUMITEMS", "MAIN", "AUXILIARY",
+  "LABEL", "RESET", "TEXT", "TD", "TS",
+  "CONDITION", "AID", "CONTROL", "PAGE", "MESSAGE",
+  "TRANSACTION", "OPERATOR", "TRACENUM", "DUMPCODE",
+  "COMPLETE", "STORAGE", "TERMINAL", "FROMLENGTH",
+  "EXCEPTION", "TEXTLENGTH", "IMMEDIATE", "TERMID",
+  "TRAILER", "RETAIN", "AUTOPAGE", "FMHPARM", "OPERPURGE",
+  // ASSIGN options
+  "ABDUMP", "ABOFFSET", "ABPROGRAM", "ACTIVITY", "ACTIVITYID",
+  "ALTSCRNHT", "ALTSCRNWD", "APLKYBD", "APLTEXT", "APPLICATION",
+  "APPLID", "ASRAINTRPT", "ASRAKEY", "ASRAPSW", "ASRAREGS",
+  "ASRASPC", "ASRASTG", "BRIDGE", "BTRANS", "CMDSEC", "COLOR",
+  "CWALENG", "DEFSCRNHT", "DEFSCRNWD", "DELIMITER", "DESTCOUNT",
+  "DESTID", "DESTIDLENG", "DSSCS", "DS3270", "ERRORMSG",
+  "ERRORMSGLEN", "EWASUPP", "EXTDS", "FACILITY", "FCI",
+  "GCHARS", "GCODES", "GMMI", "GMEXITOPT", "HILIGHT",
+  "INITPARM", "INITPARMLEN", "INPARTN", "INVOKINGPROG",
+  "KATAKANA", "LANGINUSE", "LDCMNEM", "LDCNUM", "LINKLEVEL",
+  "LOCALCCSID", "MAPCOLUMN", "MAPHEIGHT", "MAPLINE", "MAPWIDTH",
+  "MSRCONTROL", "NATLANGINUSE", "NETNAME", "NEXTTRANSID",
+  "NUMTAB", "OPCLASS", "OPERKEYS", "OPID", "OPSECURITY",
+  "ORGABCODE", "OUTLINE", "PAGENUM", "PARTNPAGE", "PARTNS",
+  "PARTNSET", "PLATFORM", "PRINSYSID", "PROCESSTYPE", "PS",
+  "QNAME", "RESSEC", "RESTART", "RETURNPROG", "SCRNHT",
+  "SCRNWD", "SIGDATA", "SOSI", "STARTCODE", "STATIONID",
+  "TASKPRIORITY", "TCTUALENG", "TELLERID", "TERMCODE",
+  "TERMPRIORITY", "TEXTKYBD", "TEXTPRINT", "TNADDR",
+  "TNIPFAMILY", "TNPORT", "TRANPRIORITY", "TWALENG",
+  "UNATTEND", "USERID", "USERNAME", "USERPRIORITY", "VALIDATION",
+  // ADDRESS options
+  "ACEE", "CWA", "EIB", "TCTUA", "TWA",
+  // WRITE OPERATOR options
+  "ROUTECODES", "NUMROUTES", "ACTION", "CRITICAL", "EVENTUAL",
+  "REPLY", "MAXLENGTH", "TIMEOUT",
+  // RESP/RESP2
+  "RESP", "RESP2",
+]);
+
+const CICS_CONDITIONS = new Set([
+  "CBIDERR", "CHANNELERR", "CINVREQ", "CONTAINERERR", "DUPKEY",
+  "DUPREC", "ENDDATA", "ENDFILE", "ENDINPT", "ENDOUTPT",
+  "ENQBUSY", "ENVDEFERR", "EOC", "EODS", "ERROR", "EXPIRED",
+  "FILENOTFOUND", "ILLOGIC", "INBFMH", "INCOMPLETE", "INQBUSY",
+  "INVERRTERM", "INVEST", "INVMPSZ", "INVREQ", "IOERR",
+  "ISCINVREQ", "ITEMERR", "LENGERR", "LINKABEND", "MAPFAIL",
+  "NATLANGERR", "NOSTART", "NOSPACE", "NOSPOOL", "NOSTG",
+  "NOTALLOC", "NOTAUTH", "NOTFND", "NORMAL", "NOTOPEN",
+  "PGMIDERR", "QBUSY", "QIDERR", "QZERO", "READONLY",
+  "RECORDBUSY", "REQIDERR", "ROLLEDBACK", "SESSIONERR", "SIGNOFF",
+  "SPOLBUSY", "SPOLERR", "SUPPRESSED", "SYSBUSY", "SYSIDERR",
+  "TASKIDERR", "TERMERR", "TERMIDERR", "TIMERERR", "TRANSIDERR",
+  "TSIOERR", "UNEXPIN", "WRBRK",
+]);
+
 // ---- Token scanning ----
 
 const WORD_RE = /[A-Za-z][A-Za-z0-9_-]*/g;
@@ -120,6 +238,274 @@ export type SemanticToken = {
   tokenType: number;
   tokenModifiers: number;
 };
+
+/**
+ * Emit semantic tokens for a single line inside an EXEC CICS block.
+ * Classifies CICS verbs, options, conditions, and data names.
+ * Returns the updated paren depth for multi-line tracking.
+ */
+function emitCicsTokens(
+  lang: string,
+  langStart: number,
+  lineNo: number,
+  tokens: SemanticToken[],
+  dataItemNames: Set<string>,
+  paragraphNames: Set<string>,
+  defSites: Set<string>,
+  parenDepth: number,
+): number {
+  // 1) String literals
+  STRING_RE.lastIndex = 0;
+  let sm: RegExpExecArray | null;
+  const stringRanges: { start: number; end: number }[] = [];
+  while ((sm = STRING_RE.exec(lang)) !== null) {
+    const start = langStart + sm.index;
+    tokens.push({
+      line: lineNo,
+      startChar: start,
+      length: sm[0].length,
+      tokenType: 4, // string
+      tokenModifiers: 0,
+    });
+    stringRanges.push({ start: sm.index, end: sm.index + sm[0].length });
+  }
+
+  const inStr = (idx: number) =>
+    stringRanges.some(r => idx >= r.start && idx < r.end);
+
+  // 2) Numeric literals (outside strings)
+  NUMBER_RE.lastIndex = 0;
+  let nm: RegExpExecArray | null;
+  while ((nm = NUMBER_RE.exec(lang)) !== null) {
+    if (inStr(nm.index)) continue;
+    tokens.push({
+      line: lineNo,
+      startChar: langStart + nm.index,
+      length: nm[0].length,
+      tokenType: 5, // number
+      tokenModifiers: 0,
+    });
+  }
+
+  // 3) Build per-character paren depth map (carrying over from previous lines)
+  let depth = parenDepth;
+  const depthAt: number[] = new Array(lang.length).fill(0);
+  for (let i = 0; i < lang.length; i++) {
+    if (lang[i] === '(' && !inStr(i)) depth++;
+    depthAt[i] = depth;
+    if (lang[i] === ')' && !inStr(i) && depth > 0) {
+      depth--;
+      depthAt[i] = depth;
+    }
+  }
+
+  // 4) Classify words
+  WORD_RE.lastIndex = 0;
+  let wm: RegExpExecArray | null;
+  while ((wm = WORD_RE.exec(lang)) !== null) {
+    if (inStr(wm.index)) continue;
+    const word = wm[0];
+    const upper = word.toUpperCase();
+    const absChar = langStart + wm.index;
+    const length = word.length;
+    const isDef = defSites.has(`${lineNo}:${absChar}`);
+    const inParens = depthAt[wm.index] > 0;
+
+    if (inParens) {
+      // Inside parentheses: data name / paragraph name reference
+      if (dataItemNames.has(upper)) {
+        tokens.push({
+          line: lineNo, startChar: absChar, length,
+          tokenType: 1, // variable
+          tokenModifiers: isDef ? 1 : 0,
+        });
+      } else if (paragraphNames.has(upper)) {
+        tokens.push({
+          line: lineNo, startChar: absChar, length,
+          tokenType: 2, // function (paragraph)
+          tokenModifiers: isDef ? 1 : 0,
+        });
+      }
+      // else: unknown word in parens — leave unstyled (data name not in index)
+      continue;
+    }
+
+    // Outside parentheses: CICS keyword classification
+    if (upper === "EXEC" || upper === "CICS" || upper === "END-EXEC") {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 8, // macro
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    if (CICS_VERBS.has(upper)) {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 2, // function (CICS verb)
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    if (CICS_CONDITIONS.has(upper)) {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 9, // type (CICS condition)
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    if (CICS_OPTIONS.has(upper)) {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 11, // property (CICS option)
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    // Unknown word outside parens — leave unstyled
+  }
+
+  return depth; // carry forward paren depth for next line
+}
+
+/**
+ * Emit semantic tokens for a single line inside an EXEC DLI block.
+ * Classifies DLI verbs (short & long), clause keywords, and data names.
+ * Returns the updated paren depth for multi-line tracking.
+ */
+function emitDliTokens(
+  lang: string,
+  langStart: number,
+  lineNo: number,
+  tokens: SemanticToken[],
+  dataItemNames: Set<string>,
+  paragraphNames: Set<string>,
+  defSites: Set<string>,
+  parenDepth: number,
+): number {
+  // 1) String literals
+  STRING_RE.lastIndex = 0;
+  let sm: RegExpExecArray | null;
+  const stringRanges: { start: number; end: number }[] = [];
+  while ((sm = STRING_RE.exec(lang)) !== null) {
+    const start = langStart + sm.index;
+    tokens.push({
+      line: lineNo,
+      startChar: start,
+      length: sm[0].length,
+      tokenType: 4, // string
+      tokenModifiers: 0,
+    });
+    stringRanges.push({ start: sm.index, end: sm.index + sm[0].length });
+  }
+
+  const inStr = (idx: number) =>
+    stringRanges.some(r => idx >= r.start && idx < r.end);
+
+  // 2) Numeric literals (outside strings)
+  NUMBER_RE.lastIndex = 0;
+  let nm: RegExpExecArray | null;
+  while ((nm = NUMBER_RE.exec(lang)) !== null) {
+    if (inStr(nm.index)) continue;
+    tokens.push({
+      line: lineNo,
+      startChar: langStart + nm.index,
+      length: nm[0].length,
+      tokenType: 5, // number
+      tokenModifiers: 0,
+    });
+  }
+
+  // 3) Build per-character paren depth map (carrying over from previous lines)
+  let depth = parenDepth;
+  const depthAt: number[] = new Array(lang.length).fill(0);
+  for (let i = 0; i < lang.length; i++) {
+    if (lang[i] === '(' && !inStr(i)) depth++;
+    depthAt[i] = depth;
+    if (lang[i] === ')' && !inStr(i) && depth > 0) {
+      depth--;
+      depthAt[i] = depth;
+    }
+  }
+
+  // 4) Classify words
+  WORD_RE.lastIndex = 0;
+  let wm: RegExpExecArray | null;
+  while ((wm = WORD_RE.exec(lang)) !== null) {
+    if (inStr(wm.index)) continue;
+    const word = wm[0];
+    const upper = word.toUpperCase();
+    const absChar = langStart + wm.index;
+    const length = word.length;
+    const isDef = defSites.has(`${lineNo}:${absChar}`);
+    const inParens = depthAt[wm.index] > 0;
+
+    if (inParens) {
+      // Inside parentheses: data name / paragraph name reference
+      if (dataItemNames.has(upper)) {
+        tokens.push({
+          line: lineNo, startChar: absChar, length,
+          tokenType: 1, // variable
+          tokenModifiers: isDef ? 1 : 0,
+        });
+      } else if (paragraphNames.has(upper)) {
+        tokens.push({
+          line: lineNo, startChar: absChar, length,
+          tokenType: 2, // function (paragraph)
+          tokenModifiers: isDef ? 1 : 0,
+        });
+      }
+      // else: unknown word in parens — leave unstyled
+      continue;
+    }
+
+    // Outside parentheses: DLI keyword classification
+    if (upper === "EXEC" || upper === "DLI" || upper === "END-EXEC") {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 8, // macro
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    if (DLI_VERBS.has(upper)) {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 2, // function (DLI verb)
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    if (DLI_VERB_WORDS.has(upper)) {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 2, // function (DLI long-form verb word)
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    if (DLI_CLAUSE_KEYWORDS.has(upper)) {
+      tokens.push({
+        line: lineNo, startChar: absChar, length,
+        tokenType: 11, // property (DLI clause)
+        tokenModifiers: 0,
+      });
+      continue;
+    }
+
+    // Unknown word outside parens — leave unstyled
+  }
+
+  return depth; // carry forward paren depth for next line
+}
 
 /**
  * Build semantic tokens for the entire document.
@@ -147,6 +533,10 @@ export function buildSemanticTokens(
 
   let inDataDivision = false;
   let inProcedureDivision = false;
+  let inExecCics = false;
+  let cicsParenDepth = 0;
+  let inExecDli = false;
+  let dliParenDepth = 0;
 
   for (let lineNo = 0; lineNo < lines.length; lineNo++) {
     const full = lines[lineNo];
@@ -176,6 +566,70 @@ export function buildSemanticTokens(
     const langEnd = Math.min(full.length, 72);
     const lang = full.slice(langStart, langEnd);
     const trimmed = lang.trimStart();
+
+    // Track EXEC CICS blocks — provide CICS-specific semantic tokens
+    const hasExecCics = /\bEXEC\s+CICS\b/i.test(lang);
+    const hasExecDli = /\bEXEC\s+DLI\b/i.test(lang);
+    const hasEndExec = /\bEND-EXEC\b/i.test(lang);
+
+    if (hasExecCics && hasEndExec) {
+      // Single-line EXEC CICS ... END-EXEC
+      cicsParenDepth = 0;
+      cicsParenDepth = emitCicsTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, cicsParenDepth);
+      inExecCics = false;
+      cicsParenDepth = 0;
+      continue;
+    }
+    if (hasExecCics) {
+      cicsParenDepth = 0;
+      cicsParenDepth = emitCicsTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, cicsParenDepth);
+      inExecCics = true;
+      continue;
+    }
+    if (hasEndExec && inExecCics) {
+      cicsParenDepth = emitCicsTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, cicsParenDepth);
+      inExecCics = false;
+      cicsParenDepth = 0;
+      continue;
+    }
+    if (inExecCics) {
+      cicsParenDepth = emitCicsTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, cicsParenDepth);
+      continue;
+    }
+
+    // Track EXEC DLI blocks — provide DLI-specific semantic tokens
+    if (hasExecDli && hasEndExec) {
+      // Single-line EXEC DLI ... END-EXEC
+      dliParenDepth = 0;
+      dliParenDepth = emitDliTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, dliParenDepth);
+      inExecDli = false;
+      dliParenDepth = 0;
+      continue;
+    }
+    if (hasExecDli) {
+      dliParenDepth = 0;
+      dliParenDepth = emitDliTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, dliParenDepth);
+      inExecDli = true;
+      continue;
+    }
+    if (hasEndExec && inExecDli) {
+      dliParenDepth = emitDliTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, dliParenDepth);
+      inExecDli = false;
+      dliParenDepth = 0;
+      continue;
+    }
+    if (inExecDli) {
+      dliParenDepth = emitDliTokens(lang, langStart, lineNo, tokens,
+        dataItemNames, paragraphNames, defSites, dliParenDepth);
+      continue;
+    }
 
     // Track division
     if (/^(IDENTIFICATION|ID)\s+DIVISION\b/i.test(trimmed)) {

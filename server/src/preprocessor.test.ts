@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
+import { preprocessUri, parseReplaceStatements,
   tokenizeCobolText,
   parseCopyStatements,
   normalizeCopyName,
@@ -144,5 +144,49 @@ describe("replaceAllHeuristic", () => {
     const r = replaceAllHeuristic("TEXT", "", "X", "word");
     expect(r.nextText).toBe("TEXT");
     expect(r.count).toBe(0);
+  });
+});
+
+describe("parseReplaceStatements", () => {
+  it("parses REPLACE statement", () => {
+    const stmts = parseReplaceStatements("REPLACE ==FOO== BY ==BAR==.");
+    expect(stmts).toHaveLength(1);
+    expect(stmts[0].isOff).toBe(false);
+    expect(stmts[0].replacing).toHaveLength(1);
+    expect(stmts[0].replacing[0].from).toBe("==FOO==");
+    expect(stmts[0].replacing[0].to).toBe("==BAR==");
+  });
+
+  it("parses REPLACE OFF statement", () => {
+    const stmts = parseReplaceStatements("REPLACE OFF.");
+    expect(stmts).toHaveLength(1);
+    expect(stmts[0].isOff).toBe(true);
+  });
+});
+
+describe("preprocessUri with REPLACE", () => {
+  it("should handle standalone REPLACE statement", () => {
+    const source = [
+      "       IDENTIFICATION DIVISION.",
+      "       REPLACE ==FOO== BY ==BAR==.",
+      "       DISPLAY FOO.",
+      "       REPLACE OFF.",
+      "       DISPLAY FOO.",
+    ].join("\n");
+
+    const pre = preprocessUri({
+      uri: "file:///main.cbl",
+      text: source,
+      baseDirs: [],
+      diagsByUri: new Map(),
+      includeStack: [],
+      depth: 0,
+      maxDepth: 10,
+    });
+
+    expect(pre.text).toContain("DISPLAY BAR");
+    expect(pre.text).toContain("DISPLAY FOO");
+    const lines = pre.text.split("\n");
+    expect(lines[1].trim()).toBe("");
   });
 });

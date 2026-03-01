@@ -11,6 +11,7 @@ import {
   LineSlice,
   PreprocessedDoc,
   ReplaceStat,
+  ReplaceStmt,
   ReplacingPair,
   Segment,
   StmtSeg,
@@ -32,6 +33,9 @@ import {
   escapeRegExp,
   sliceLines,
   isFixedCommentIndicator,
+  isBmsSource,
+  parseBmsMapset,
+  generateCobolFromBms,
 } from "./utils";
 
 import { normalizeFixedLineForParser } from "./normalizer";
@@ -145,6 +149,8 @@ export function preprocessUri(args: {
   const builder = new PreBuilder();
   const slices = sliceLines(text);
 
+  let activeReplacePairs: ReplacingPair[] = [];
+
   let i = 0;
   while (i < slices.length) {
     const sl = slices[i];
@@ -171,6 +177,38 @@ export function preprocessUri(args: {
 
     // start COPY only on non-continuation lines (fixed-format rule)
     const isContinuation = sl.isFixed && sl.indicator === "-";
+
+    if (!isContinuation && /\bREPLACE\b/i.test(sl.lang)) {
+      const stmt = collectReplaceStatement(uri, slices, i);
+      if (stmt) {
+        const replaceStmts = parseReplaceStatements(stmt.text);
+        if (replaceStmts.length > 0) {
+          for (const r of replaceStmts) {
+            for (const err of r.errors) {
+              pushDiag(diagsByUri, uri, {
+                severity: DiagnosticSeverity.Error,
+                range: mapStmtTextRangeToDocRange(stmt, err.range),
+                message: err.message,
+                source: "cobol85",
+                code: err.code,
+              });
+            }
+            if (r.isOff) {
+              activeReplacePairs = [];
+            } else {
+              activeReplacePairs = r.replacing;
+            }
+          }
+          // Neutralize REPLACE statement lines for the parser
+          for (const seg of stmt.segs) {
+            const sl2 = slices[seg.lineNo];
+            builder.appendSourceLine(uri, sl2.lineNo, 0, "", sl2.full.length);
+          }
+          i = stmt.lastLine + 1;
+          continue;
+        }
+      }
+    }
 
     if (!isContinuation && /\bCOPY\b/i.test(sl.lang)) {
       const stmt = collectCopyStatement(uri, slices, i);
@@ -302,14 +340,26 @@ export function preprocessUri(args: {
             continue;
           }
 
-          basicFixedFormatChecks(copyUri, copyText, diagsByUri);
+          // Check if the copybook is a BMS mapset source (assembler, not COBOL).
+          // BMS sources (DFHMSD/DFHMDI/DFHMDF) are converted to equivalent COBOL.
+          let effectiveCopyText = copyText;
+          if (isBmsSource(copyText)) {
+            const mapset = parseBmsMapset(copyText);
+            if (mapset) {
+              effectiveCopyText = generateCobolFromBms(mapset);
+            }
+          }
+
+          if (effectiveCopyText === copyText) {
+            basicFixedFormatChecks(copyUri, copyText, diagsByUri);
+          }
 
           const hasReplacing = c.replacing.length > 0;
 
           // Wenn REPLACING: apply auf Fixed-Text, damit nested COPY & continuation erhalten bleiben
-          let copyTextToProcess = copyText;
+          let copyTextToProcess = effectiveCopyText;
           if (hasReplacing) {
-            const applied = applyReplacingToFixedText(copyText, c.replacing);
+            const applied = applyReplacingToFixedText(effectiveCopyText, c.replacing);
             for (const stat of applied.stats) {
               if (stat.count === 0) {
                 pushDiag(diagsByUri, uri, {
@@ -349,7 +399,32 @@ export function preprocessUri(args: {
     }
 
     // Normal line: fixed-format fuer Parser sanft normalisieren
-    appendOriginalLineForParser(builder, uri, sl);
+    let slToAppend = sl;
+    if (activeReplacePairs.length > 0) {
+      if (sl.isFixed) {
+        const prefix = sl.full.slice(0, 7);
+        let lang = sl.lang;
+        for (const p of activeReplacePairs) {
+          const from = unwrapReplacingToken(p.from, p.fromKind);
+          const to = unwrapReplacingToken(p.to, p.toKind);
+          const r = replaceAllHeuristic(lang, from, to, p.fromKind);
+          lang = r.nextText;
+        }
+        const langFixed = lang.padEnd(65, " ").slice(0, 65);
+        slToAppend = { ...sl, full: prefix + langFixed, lang: langFixed };
+      } else {
+        let line = sl.full;
+        for (const p of activeReplacePairs) {
+          const from = unwrapReplacingToken(p.from, p.fromKind);
+          const to = unwrapReplacingToken(p.to, p.toKind);
+          const r = replaceAllHeuristic(line, from, to, p.fromKind);
+          line = r.nextText;
+        }
+        slToAppend = { ...sl, full: line, lang: line };
+      }
+    }
+
+    appendOriginalLineForParser(builder, uri, slToAppend);
     i++;
   }
 
@@ -479,9 +554,15 @@ export function mapStmtOffset(stmt: CollectedStmt, off: number): { line: number;
 
 export function mapGenRange(pre: PreprocessedDoc, startOff: number, endOff: number): { uri: string; range: Range } | undefined {
   const a = mapGenPoint(pre, startOff);
-  const b = mapGenPoint(pre, Math.max(startOff, endOff));
-
   if (!a) return undefined;
+
+  if (endOff <= startOff) {
+    return { uri: a.uri, range: Range.create(a.line, a.character, a.line, a.character) };
+  }
+
+  // Map the last *inclusive* character of the range, then +1 for the exclusive end.
+  // This avoids landing on the \n generated-segment that follows every source segment.
+  const b = mapGenPoint(pre, endOff - 1);
 
   // Wenn Endpunkt auf anderes URI mappt, pinnen wir auf Startpunkt (MVP)
   if (!b || a.uri !== b.uri) {
@@ -493,7 +574,7 @@ export function mapGenRange(pre: PreprocessedDoc, startOff: number, endOff: numb
 
   return {
     uri: a.uri,
-    range: Range.create(a.line, a.character, b.line, b.character),
+    range: Range.create(a.line, a.character, b.line, b.character + 1),
   };
 }
 
@@ -519,6 +600,176 @@ export function mapGenPoint(pre: PreprocessedDoc, off: number): { uri: string; l
 }
 
 // ======================= COPY parsing =======================
+
+
+export function collectReplaceStatement(uri: string, slices: LineSlice[], startLine: number): CollectedStmt | undefined {
+  const segs: StmtSeg[] = [];
+  let text = "";
+  let offset = 0;
+
+  const maxLines = 50;
+  let lastLine = startLine;
+  let foundPeriod = false;
+
+  for (let k = 0; k < maxLines; k++) {
+    const idx = startLine + k;
+    if (idx >= slices.length) break;
+
+    const sl = slices[idx];
+
+    if (k > 0) {
+      if (sl.isComment) continue;
+
+      const isContinuation = sl.isFixed && sl.indicator === "-";
+
+      if (!isContinuation) {
+        if (foundPeriod) break;
+
+        const langTrim = sl.lang.trimStart();
+        if (langTrim.length === 0) break;
+
+        const firstWord = langTrim.match(/^([A-Z][A-Z0-9-]*)\b/i);
+        if (firstWord) {
+          const upper = firstWord[1].toUpperCase();
+          const replaceClauseWords = new Set([
+            "REPLACE", "OFF", "BY", "LEADING", "TRAILING",
+          ]);
+          if (!replaceClauseWords.has(upper) && /^(MOVE|ADD|SUBTRACT|MULTIPLY|DIVIDE|COMPUTE|PERFORM|IF|EVALUATE|DISPLAY|CALL|READ|WRITE|OPEN|CLOSE|COPY|EXEC|GO|STOP|EXIT|ACCEPT|SET|SEARCH|SORT|MERGE|INITIALIZE|INSPECT|STRING|UNSTRING|DELETE|REWRITE|RELEASE|RETURN|START|ALTER|CANCEL|CONTINUE|ENTRY|GOBACK|USE|NEXT)$/i.test(upper)) {
+            break;
+          }
+        }
+      }
+    }
+
+    segs.push({ lineNo: sl.lineNo, langStart: sl.langStart, text: sl.lang, startOffset: offset });
+    text += sl.lang;
+    offset += sl.lang.length;
+
+    text += "\n";
+    offset += 1;
+
+    lastLine = sl.lineNo;
+
+    if (hasSeparatorPeriodOutsideLiterals(sl.lang)) {
+      foundPeriod = true;
+    }
+  }
+
+  if (segs.length === 0) return undefined;
+  return { text, segs, firstLine: startLine, lastLine, inUri: uri };
+}
+
+
+export function parseReplaceStatements(text: string): ReplaceStmt[] {
+  const toks = tokenizeCobolText(text);
+  const out: ReplaceStmt[] = [];
+
+  for (let i = 0; i < toks.length; i++) {
+    if (toks[i].upper !== "REPLACE") continue;
+
+    const errors: CopyParseError[] = [];
+    const replacing: ReplacingPair[] = [];
+    let isOff = false;
+
+    const stmt: ReplaceStmt = {
+      isOff: false,
+      replacing,
+      replaceKeywordRange: { start: toks[i].start, end: toks[i].end },
+      terminatedByDot: false,
+      dotRange: undefined,
+      errors,
+    };
+
+    for (let k = i + 1; k < toks.length; k++) {
+      if (toks[k].kind === "dot") {
+        stmt.terminatedByDot = true;
+        stmt.dotRange = { start: toks[k].start, end: toks[k].end };
+        break;
+      }
+    }
+    if (!stmt.terminatedByDot) {
+      errors.push({
+        code: "REPLACE_MISSING_PERIOD",
+        message: "REPLACE-Statement ohne '.' (Punkt).",
+        range: stmt.replaceKeywordRange,
+      });
+    }
+
+    let j = i + 1;
+    if (j < toks.length && toks[j].upper === "OFF") {
+      stmt.isOff = true;
+      j += 1;
+    } else {
+      while (j < toks.length && toks[j].kind !== "dot") {
+        if (toks[j].upper === "LEADING" || toks[j].upper === "TRAILING") {
+          j += 1;
+          if (j >= toks.length || toks[j].kind === "dot") break;
+        }
+
+        const fromTok = toks[j];
+        if (!fromTok || fromTok.kind === "dot") break;
+        j += 1;
+
+        if (fromTok.kind === "pseudo" && fromTok.closed === false) {
+          errors.push({
+            code: "REPLACE_PSEUDOTEXT_UNCLOSED",
+            message: "Unclosed Pseudotext: erwartet abschliessendes '=='.",
+            range: { start: fromTok.start, end: fromTok.end },
+          });
+        }
+
+        const byTok = toks[j];
+        if (!byTok || byTok.kind === "dot" || byTok.upper !== "BY") {
+          errors.push({
+            code: "REPLACE_MISSING_BY",
+            message: "REPLACE: erwartet 'BY' nach dem FROM-Teil.",
+            range: { start: fromTok.start, end: fromTok.end },
+          });
+
+          while (j < toks.length && toks[j].kind !== "dot" && toks[j].upper !== "BY") j++;
+          if (j < toks.length && toks[j].upper === "BY") j++;
+        } else {
+          j += 1;
+        }
+
+        const toTok = toks[j];
+        if (!toTok || toTok.kind === "dot") {
+          errors.push({
+            code: "REPLACE_MISSING_TO",
+            message: "REPLACE: erwartet TO-Teil nach 'BY'.",
+            range: byTok
+              ? { start: byTok.start, end: byTok.end }
+              : { start: fromTok.start, end: fromTok.end },
+          });
+          break;
+        }
+
+        if (toTok.kind === "pseudo" && toTok.closed === false) {
+          errors.push({
+            code: "REPLACE_PSEUDOTEXT_UNCLOSED",
+            message: "Unclosed Pseudotext: erwartet abschliessendes '=='.",
+            range: { start: toTok.start, end: toTok.end },
+          });
+        }
+
+        replacing.push({
+          from: fromTok.text,
+          to: toTok.text,
+          fromRange: { start: fromTok.start, end: fromTok.end },
+          toRange: { start: toTok.start, end: toTok.end },
+          fromKind: fromTok.kind,
+          toKind: toTok.kind,
+        });
+
+        j += 1;
+      }
+    }
+
+    out.push(stmt);
+  }
+
+  return out;
+}
 
 export function parseCopyStatements(text: string): CopyStmt[] {
   const toks = tokenizeCobolText(text);

@@ -186,6 +186,31 @@ describe("buildReferences", () => {
     expect(refs.length).toBe(4); // 1 definition + 3 usages
   });
 
+  it("keeps qualified data-name references separated", () => {
+    const doc = makeDoc([
+      fixedLine("IDENTIFICATION DIVISION."),
+      fixedLine("PROGRAM-ID. TEST1."),
+      fixedLine("DATA DIVISION."),
+      fixedLine("WORKING-STORAGE SECTION."),
+      fixedLine("01 REC-A."),
+      fixedLine("   05 FIELD-1 PIC X."),
+      fixedLine("01 REC-B."),
+      fixedLine("   05 FIELD-1 PIC X."),
+      fixedLine("PROCEDURE DIVISION."),
+      fixedLine("MAIN-PARA."),
+      fixedLine("    MOVE FIELD-1 OF REC-A TO FIELD-1 OF REC-B."),
+      fixedLine("    DISPLAY FIELD-1 OF REC-A."),
+      fixedLine("    DISPLAY FIELD-1 OF REC-B."),
+    ]);
+
+    const line10 = doc.getText().split("\n")[10];
+    const firstField = line10.indexOf("FIELD-1");
+    const refs = buildReferences(doc, Position.create(10, firstField + 1), true);
+
+    const refLines = refs.map((r) => r.range.start.line).sort((a, b) => a - b);
+    expect(refLines).toEqual([5, 10, 11]);
+  });
+
   it("returns empty for unknown word", () => {
     const doc = makeDoc([
       fixedLine("IDENTIFICATION DIVISION."),

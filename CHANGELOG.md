@@ -2,6 +2,46 @@
 
 Kompletter Verlauf von "Stunde 0" bis jetzt.
 
+## [Unreleased]
+
+- In Arbeit.
+
+<!-- AUTO-CHANGELOG-START -->
+### Snapshot (auto)
+- Fuehre `npm run changelog:update` aus, um den technischen Snapshot zu aktualisieren.
+<!-- AUTO-CHANGELOG-END -->
+
+## [0.0.4] - 2026-03-01
+
+### Added
+- Kontext-sensitive Completion fuer `EXEC DLI` und `EXEC CICS` (Verben, Klauseln/Optionen, Bedingungen, Datennamen in Klammerargumenten).
+- Umfangreiche `EXEC CICS` Lint-Spezifikation mit Kommando-/Optionsregeln und Condition-Validierung (`CICS_COMMAND_SPECS`, `CICS_KNOWN_CONDITIONS`).
+- Erweiterte `EXEC DLI` Lint-Validierung fuer Kurz-/Langformen, Klausel-Reihenfolgen und Kombinationsregeln.
+- Neuer Undefined-Identifier-Lint (`UNDEFINED_IDENTIFIER`) auf Basis des Definition-Index.
+- Hover-Fallbacks fuer Systemfelder (`EIB_*`, `DIB_*`) inkl. PIC/Beschreibung.
+- Neue Utilities fuer BMS (`isBmsSource`, `parseBmsMapset`, `generateCobolFromBms`) inkl. Tests.
+- Neue/fortgefuehrte Spezifikations- und Planungsdokumente unter `docs/` und Referenz-PDFs unter `specs/`.
+- Neue Dev-Dependencies: `vscode-oniguruma`, `vscode-textmate`.
+- Skript `npm run changelog:update` zur Snapshot-Aktualisierung von `CHANGELOG.md`.
+
+### Changed
+- Versionserhoehung von `0.0.3` auf `0.0.4` (`package.json`, `package-lock.json`).
+- Symbolauflosung fuer Definition/References/Rename um Qualifier-Logik erweitert (`OF`/`IN`, exakte Definition-Sites, Ambiguitaetsbehandlung).
+- Definition-Index ausgebaut: `INDEXED BY`-Namen, `SELECT`-Dateinamen (ENVIRONMENT DIVISION), `FD`/`SD`-Namen, Parent-Hierarchien.
+- Dead-Code-Analyse auf Batch-Occurrence-Scan umgestellt (`findAllOccurrencesBatch`) inkl. Definition-Site-Filter.
+- Validation-Profil um `deadCodeMs` erweitert; Server validiert jetzt zusaetzlich undefinierte Identifier.
+- Compiler-Directive-Erkennung erweitert (`BASIS`, `INSERT`, `SERVICE`, `*CONTROL`, `*CBL`).
+- Grammatik/Highlighting erweitert:
+  - `cobol_fixed.tmLanguage.json`: eigener `EXEC CICS ... END-EXEC`-Scope, CICS-Verben/Optionen/Conditions.
+  - `cobol85.tmLanguage.json`: zusaetzliche DLI-Keywords/Klauseln und Intrinsic-Functions.
+- `README.md` und `ANALYSIS.md` auf aktuellen technischen Stand gebracht.
+
+### Fixed
+- Hover fuer CICS-/DLI-Schluesselwoerter wird innerhalb `EXEC ... END-EXEC` ausserhalb von Klammerargumenten unterdrueckt (weniger Fehl-Hover).
+- Undefinierte Identifier in `EXEC`-Bloecken werden differenziert behandelt (Host-Variablen in Argumenten werden geprueft).
+- Dead-Code-Analyse vermeidet False-Positives an Definition-Sites und reduziert Suchaufwand.
+- Rename/References behandeln qualifizierte Datennamen robuster und lehnen mehrdeutige unqualifizierte Treffer ab.
+
 ## [0.0.3] - 2026-02-26
 
 ### Added
