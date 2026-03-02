@@ -3,7 +3,6 @@
 .agents/**
 .venv/**
 .vscode/**
-node_modules/**
 vendor/**
 specs/**
 docs/**
@@ -20,6 +19,8 @@ server/tsconfig.json
 server/vitest.config.ts
 client/src/**
 client/tsconfig.json
+server/out/**/*.test.js
+server/out/**/*.test.js.map
 
 cics_summary.txt
 TODO.md
@@ -28,4 +29,3 @@ THIRD-PARTY-LICENSES.md
 package-lock.json
 CHANGLOG.md
 README_OLD.md
-

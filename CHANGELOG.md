@@ -11,6 +11,16 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 - Fuehre `npm run changelog:update` aus, um den technischen Snapshot zu aktualisieren.
 <!-- AUTO-CHANGELOG-END -->
 
+## [0.0.5] - 2026-03-02
+
+### Changed
+- Versionserhoehung von `0.0.4` auf `0.0.5` (`package.json`, `package-lock.json`).
+- Packaging-Filter in `.vscodeignore` angepasst, damit benoetigte Runtime-Abhaengigkeiten wieder im VSIX enthalten sind.
+
+### Fixed
+- VSIX-Paket enthielt durch zu aggressives Exclude (`node_modules/**`) keine LSP-/Tree-sitter-Runtime-Module mehr.
+- Build-Artefakte aus Tests werden fuer das VSIX jetzt gezielt ausgeschlossen (`server/out/**/*.test.js`, `server/out/**/*.test.js.map`).
+
 ## [0.0.4] - 2026-03-01
 
 ### Added

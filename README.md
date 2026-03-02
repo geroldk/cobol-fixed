@@ -1,7 +1,7 @@
 # COBOL Fixed Format (VS Code Extension)
 
 COBOL Fixed Format is a VS Code extension for COBOL 85 fixed-format workflows.
-Current package version: `0.0.4`.
+Current package version: `0.0.5`.
 
 It combines TextMate highlighting, a Tree-sitter based language server, and fixed-format editing helpers.
 
@@ -83,17 +83,17 @@ Example `settings.json`:
 
 ### Install from VSIX
 
-If you already have `cobol-fixed-0.0.4.vsix`:
+If you already have `cobol-fixed-0.0.5.vsix`:
 
 1. Open VS Code `Extensions`.
 2. Open the `...` menu.
 3. Choose `Install from VSIX...`.
-4. Select `cobol-fixed-0.0.4.vsix`.
+4. Select `cobol-fixed-0.0.5.vsix`.
 
 CLI alternative:
 
 ```bash
-code --install-extension cobol-fixed-0.0.4.vsix
+code --install-extension cobol-fixed-0.0.5.vsix
 ```
 
 ### Install from source
