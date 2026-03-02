@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "your-publisher",
   "license": "MIT",
   "repository": {
@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/geroldk/cobol-fixed#readme",
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.104.0"
   },
   "main": "./client/out/extension.js",
   "scripts": {
@@ -99,7 +99,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.2.3",
-    "@types/vscode": "^1.109.0",
+    "@types/vscode": "^1.104.0",
     "tree-sitter-cli": "^0.25.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",

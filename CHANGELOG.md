@@ -11,6 +11,16 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 - Fuehre `npm run changelog:update` aus, um den technischen Snapshot zu aktualisieren.
 <!-- AUTO-CHANGELOG-END -->
 
+## [0.0.6] - 2026-03-02
+
+### Changed
+- Versionserhoehung von `0.0.5` auf `0.0.6` (`package.json`, `package-lock.json`).
+- VS Code Engine-Anforderung auf `^1.104.0` abgesenkt (`package.json`, `README.md`).
+- Dev-Typdefinitionen auf `@types/vscode@^1.104.0` abgesenkt.
+
+### Fixed
+- Kompatibilitaet fuer Installationen mit VS Code `1.104.x` bis `<1.109.0` wiederhergestellt.
+
 ## [0.0.5] - 2026-03-02
 
 ### Changed
