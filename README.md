@@ -1,7 +1,7 @@
 # COBOL Fixed Format (VS Code Extension)
 
 COBOL Fixed Format is a VS Code extension for COBOL 85 fixed-format workflows.
-Current package version: `0.0.6`.
+Current package version: `0.0.7`.
 
 It combines TextMate highlighting, a Tree-sitter based language server, and fixed-format editing helpers.
 
@@ -11,6 +11,7 @@ It combines TextMate highlighting, a Tree-sitter based language server, and fixe
 - File extensions: `.cob`, `.cbl`, `.cpy`
 - Fixed-format command: `COBOL 85: Toggle Fixed-Format Comment (Column 7)` (`Ctrl+/`)
 - Tree-sitter parser backend: `server/assets/tree-sitter-cobol.wasm`
+- Runtime workaround for VS Code `< 1.107.0` to avoid V8 WASM `Zone` out-of-memory crashes
 - Copybook-aware analysis pipeline (COPY expansion + source mapping)
 - Context-aware support for `EXEC DLI` and `EXEC CICS` in:
   - diagnostics
@@ -76,6 +77,7 @@ Example `settings.json`:
 ## Requirements
 
 - VS Code `^1.104.0`
+- Compatibility note: for VS Code `1.98` to `1.106`, the language server starts with conservative V8 WASM flags; behavior on `>= 1.107.0` is unchanged.
 - Node.js + npm (current LTS recommended)
 - Docker (only needed for rebuilding the COBOL Tree-sitter WASM)
 
@@ -83,17 +85,17 @@ Example `settings.json`:
 
 ### Install from VSIX
 
-If you already have `cobol-fixed-0.0.6.vsix`:
+If you already have `cobol-fixed-0.0.7.vsix`:
 
 1. Open VS Code `Extensions`.
 2. Open the `...` menu.
 3. Choose `Install from VSIX...`.
-4. Select `cobol-fixed-0.0.6.vsix`.
+4. Select `cobol-fixed-0.0.7.vsix`.
 
 CLI alternative:
 
 ```bash
-code --install-extension cobol-fixed-0.0.6.vsix
+code --install-extension cobol-fixed-0.0.7.vsix
 ```
 
 ### Install from source

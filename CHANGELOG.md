@@ -11,6 +11,17 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 - Fuehre `npm run changelog:update` aus, um den technischen Snapshot zu aktualisieren.
 <!-- AUTO-CHANGELOG-END -->
 
+## [0.0.7] - 2026-03-02
+
+### Changed
+- Versionserhoehung von `0.0.6` auf `0.0.7` (`package.json`, `package-lock.json`).
+
+### Fixed
+- Mitigation fuer den V8-WASM-Crash `Fatal process out of memory: Zone` in VS Code `1.98` bis `1.106` durch sichere `execArgv`-Flags fuer den Language-Server-Prozess.
+
+### Compatibility
+- Verhalten auf VS Code `>=1.107.0` bleibt unveraendert; die zusaetzlichen V8-Flags sind dort weiterhin unkritisch.
+
 ## [0.0.6] - 2026-03-02
 
 ### Changed
