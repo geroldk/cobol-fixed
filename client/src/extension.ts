@@ -83,12 +83,29 @@ export function activate(context: vscode.ExtensionContext) {
     path.join("server", "out", "server.js")
   );
 
+  // Mitigate "Fatal process out of memory: Zone" crash in V8's WASM compiler
+  // (VS Code 1.98–1.106 / Electron 33+, see https://github.com/microsoft/vscode/issues/243747).
+  // The Zone OOM occurs on background threads during WASM tier-up compilation.
+  // --liftoff-only:              keep only baseline WASM compiler, skip TurboFan/Turboshaft tier-up
+  // --no-wasm-lazy-compilation:  compile all WASM functions eagerly (avoid background lazy compile)
+  // --no-wasm-tier-up:           prevent background recompilation from Liftoff → TurboFan
+  // These flags exist since V8 9.x; harmless on fixed versions (VS Code >= 1.107).
+  const wasmSafeFlags = [
+    "--liftoff-only",
+    "--no-wasm-lazy-compilation",
+    "--no-wasm-tier-up",
+  ];
+
   const serverOptions: ServerOptions = {
-    run: { module: serverModule, transport: TransportKind.ipc },
+    run: {
+      module: serverModule,
+      transport: TransportKind.ipc,
+      options: { execArgv: [...wasmSafeFlags] },
+    },
     debug: {
       module: serverModule,
       transport: TransportKind.ipc,
-      options: { execArgv: ["--nolazy", "--inspect=6009"] },
+      options: { execArgv: ["--nolazy", "--inspect=6009", ...wasmSafeFlags] },
     },
   };
 
