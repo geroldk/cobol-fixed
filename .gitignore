@@ -8,7 +8,6 @@ coverage/
 *.tsbuildinfo
 
 # Packaged extension artifacts
-*.vsix
 *.tgz
 
 # Logs
