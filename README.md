@@ -1,7 +1,7 @@
 # COBOL Fixed Format (VS Code Extension)
 
 COBOL Fixed Format is a VS Code extension for COBOL 85 fixed-format workflows.
-Current package version: `0.0.7`.
+Current package version: `0.0.8`.
 
 It combines TextMate highlighting, a Tree-sitter based language server, and fixed-format editing helpers.
 
@@ -10,6 +10,7 @@ It combines TextMate highlighting, a Tree-sitter based language server, and fixe
 - Language id: `cobol85`
 - File extensions: `.cob`, `.cbl`, `.cpy`
 - Fixed-format command: `COBOL 85: Toggle Fixed-Format Comment (Column 7)` (`Ctrl+/`)
+- VSE submit shortcut: `F5` (when `editorLangId == cobol85`)
 - Tree-sitter parser backend: `server/assets/tree-sitter-cobol.wasm`
 - Runtime workaround for VS Code `< 1.107.0` to avoid V8 WASM `Zone` out-of-memory crashes
 - Copybook-aware analysis pipeline (COPY expansion + source mapping)
@@ -74,6 +75,65 @@ Example `settings.json`:
 }
 ```
 
+## VSE Compile Submit (`.conf` Driven)
+
+The extension now supports VSE compile submits based on member-local `.conf` files.
+
+Commands:
+
+- `COBOL 85: Submit Compile Job (VSE)` (`cobol85.vseSubmitCompileJob`)
+- `COBOL 85: Create Member .conf (VSE)` (`cobol85.vseCreateMemberConf`)
+- `COBOL 85: Set VSE Password` (`cobol85.vseSetPassword`)
+- `COBOL 85: Clear VSE Password` (`cobol85.vseClearPassword`)
+- Shortcut: `F5` submits VSE compile jobs in COBOL editors.
+
+Workflow summary:
+
+1. Open a COBOL member file (for example `DBGMIF6.cbl`).
+2. Submit command resolves `<member>.conf` in the same folder.
+3. If missing and `cobol85.vse.conf.autoCreateOnMissing=true`, a wizard creates a full `.conf` (new types only: `2/3/4`).
+4. Choose build mode `T` or `P` per submit.
+5. Job is assembled from `tjcl/pjcl`, `toptions/poptions`, `txopts/pxopts`, source content, and placeholder settings.
+6. If `cobol85.vse.submit.previewBeforeSubmit=true`, an expanded job preview is shown before submit.
+7. Submit runs via `vseconnector-ts` and opens combined LST output.
+
+Supported existing member types in read mode: `0/1/2/3/4`.
+New `.conf` creation offers only `2/3/4`.
+
+### `.conf` Keys Used
+
+Required keys under `[General]`:
+
+- `source`, `phase`, `type`
+- `tjcl`, `pjcl`
+- `toptions`, `poptions`
+- `txopts`, `pxopts`
+
+`tjcl`/`pjcl` are stored quoted with escaped newlines (`\n`), compatible with existing host files.
+
+### VSE Settings
+
+```json
+{
+  "cobol85.vse.host": "vse-host",
+  "cobol85.vse.port": 2893,
+  "cobol85.vse.user": "USER1",
+  "cobol85.vse.charset": "utf8",
+  "cobol85.vse.submit.executionMode": "blocking",
+  "cobol85.vse.submit.timeoutSec": 120,
+  "cobol85.vse.submit.previewBeforeSubmit": true,
+  "cobol85.vse.conf.autoCreateOnMissing": true,
+  "cobol85.vse.conf.previewBeforeCreate": true,
+  "cobol85.vse.placeholders.catalogTest": "USRWMT.TEST",
+  "cobol85.vse.placeholders.catalogProd": "USRWMT.PROD",
+  "cobol85.vse.placeholders.id": "MYID",
+  "cobol85.vse.placeholders.lnkstep": "// EXEC LNKEDT",
+  "cobol85.vse.output.baseDir": ".vse/out"
+}
+```
+
+Password is not stored in settings. It is stored in VS Code SecretStorage via `Set VSE Password`.
+
 ## Requirements
 
 - VS Code `^1.104.0`
@@ -85,17 +145,17 @@ Example `settings.json`:
 
 ### Install from VSIX
 
-If you already have `cobol-fixed-0.0.7.vsix`:
+If you already have `cobol-fixed-0.0.8.vsix`:
 
 1. Open VS Code `Extensions`.
 2. Open the `...` menu.
 3. Choose `Install from VSIX...`.
-4. Select `cobol-fixed-0.0.7.vsix`.
+4. Select `cobol-fixed-0.0.8.vsix`.
 
 CLI alternative:
 
 ```bash
-code --install-extension cobol-fixed-0.0.7.vsix
+code --install-extension cobol-fixed-0.0.8.vsix
 ```
 
 ### Install from source

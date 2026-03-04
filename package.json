@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "publisher": "your-publisher",
   "license": "MIT",
   "repository": {
@@ -66,12 +66,33 @@
       {
         "command": "cobol85.toggleFixedComment",
         "title": "COBOL 85: Toggle Fixed-Format Comment (Column 7)"
+      },
+      {
+        "command": "cobol85.vseSubmitCompileJob",
+        "title": "COBOL 85: Submit Compile Job (VSE)"
+      },
+      {
+        "command": "cobol85.vseCreateMemberConf",
+        "title": "COBOL 85: Create Member .conf (VSE)"
+      },
+      {
+        "command": "cobol85.vseSetPassword",
+        "title": "COBOL 85: Set VSE Password"
+      },
+      {
+        "command": "cobol85.vseClearPassword",
+        "title": "COBOL 85: Clear VSE Password"
       }
     ],
     "keybindings": [
       {
         "command": "cobol85.toggleFixedComment",
         "key": "ctrl+/",
+        "when": "editorTextFocus && editorLangId == 'cobol85'"
+      },
+      {
+        "command": "cobol85.vseSubmitCompileJob",
+        "key": "f5",
         "when": "editorTextFocus && editorLangId == 'cobol85'"
       }
     ],
@@ -93,6 +114,80 @@
             "COPYBOOKS"
           ],
           "description": "Relative or absolute directories to search for COPY books. Relative paths are resolved from each workspace folder."
+        },
+        "cobol85.vse.host": {
+          "type": "string",
+          "default": "",
+          "description": "VSE Connector host name."
+        },
+        "cobol85.vse.port": {
+          "type": "number",
+          "default": 2893,
+          "description": "VSE Connector port."
+        },
+        "cobol85.vse.user": {
+          "type": "string",
+          "default": "",
+          "description": "VSE Connector user."
+        },
+        "cobol85.vse.charset": {
+          "type": "string",
+          "default": "utf8",
+          "description": "Character set used for submit and output conversion."
+        },
+        "cobol85.vse.submit.executionMode": {
+          "type": "string",
+          "enum": [
+            "blocking",
+            "background"
+          ],
+          "default": "blocking",
+          "description": "Submit execution mode: wait in foreground or continue in background."
+        },
+        "cobol85.vse.submit.timeoutSec": {
+          "type": "number",
+          "default": 120,
+          "description": "Submit timeout in seconds."
+        },
+        "cobol85.vse.submit.previewBeforeSubmit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show expanded job preview before submit and require confirmation."
+        },
+        "cobol85.vse.conf.autoCreateOnMissing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-create member .conf via wizard when no matching .conf is found."
+        },
+        "cobol85.vse.conf.previewBeforeCreate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show generated .conf preview before writing file."
+        },
+        "cobol85.vse.placeholders.catalogTest": {
+          "type": "string",
+          "default": "",
+          "description": "Value for #CATALOG# in test mode (T)."
+        },
+        "cobol85.vse.placeholders.catalogProd": {
+          "type": "string",
+          "default": "",
+          "description": "Value for #CATALOG# in production mode (P)."
+        },
+        "cobol85.vse.placeholders.id": {
+          "type": "string",
+          "default": "",
+          "description": "Value for #ID# placeholder."
+        },
+        "cobol85.vse.placeholders.lnkstep": {
+          "type": "string",
+          "default": "",
+          "description": "Value for #LNKSTEP# placeholder."
+        },
+        "cobol85.vse.output.baseDir": {
+          "type": "string",
+          "default": ".vse/out",
+          "description": "Base directory for submit outputs. Relative paths are resolved against workspace folder."
         }
       }
     }
@@ -107,6 +202,7 @@
     "vscode-textmate": "^9.3.2"
   },
   "dependencies": {
+    "vseconnector-ts": "file:../vseconnector",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",

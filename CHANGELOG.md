@@ -8,8 +8,59 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 
 <!-- AUTO-CHANGELOG-START -->
 ### Snapshot (auto)
-- Fuehre `npm run changelog:update` aus, um den technischen Snapshot zu aktualisieren.
+- Letzter Release-Tag: `v0.0.7`
+- Neue Commits seit letztem Release: `0`
+- Tracking-Diff seit `v0.0.7`: `5` Dateien, `252` Einfuegungen, `7` Loeschungen
+- Untracked Dateien: `13`
+
+### Commits seit letztem Release
+- Keine neuen Commits seit `v0.0.7`.
+
+### Dateien (Tracked, geaendert seit `v0.0.7`)
+- `CHANGELOG.md`
+- `client/src/extension.ts`
+- `package-lock.json`
+- `package.json`
+- `README.md`
+
+### Dateien (Untracked)
+- `client/src/vse/confGenerator.ts`
+- `client/src/vse/confParser.ts`
+- `client/src/vse/confResolver.ts`
+- `client/src/vse/jobAssembler.ts`
+- `client/src/vse/settings.ts`
+- `client/src/vse/submitFlow.ts`
+- `client/src/vse/types.ts`
+- `skel/COBOL85.skel`
+- `skel/COBOL85DLI.skel`
+- `skel/COBOL85DLI.xopt`
+- `skel/COBOL85DLICICS.skel`
+- `skel/COBOL85DLICICS.xopt`
+- `skel/COMPILEROPTIONS.opt`
 <!-- AUTO-CHANGELOG-END -->
+
+## [0.0.8] - 2026-03-04
+
+### Added
+- VSE compile submit workflow auf `.conf`-Basis inkl. neuer Commands:
+  - `cobol85.vseSubmitCompileJob`
+  - `cobol85.vseCreateMemberConf`
+  - `cobol85.vseSetPassword`
+  - `cobol85.vseClearPassword`
+- Neue VSE-Module unter `client/src/vse/` fuer Parsing/Resolver/Generator/Assembler/Submit-Orchestrierung.
+- Submit-Preview vor dem Senden mit Setting `cobol85.vse.submit.previewBeforeSubmit`.
+- Neue Keybinding-Zuordnung `F5` fuer `cobol85.vseSubmitCompileJob` im COBOL-Editor.
+- Skeleton- und Default-Dateien unter `skel/` fuer Typen `2/3/4` (`COBOL85*`, `*.xopt`, `COMPILEROPTIONS.opt`).
+
+### Changed
+- Versionserhoehung von `0.0.7` auf `0.0.8` (`package.json`, `package-lock.json`).
+- README um VSE-Submit-Dokumentation, Settings, Workflow und Shortcut-Hinweis erweitert.
+- Package-Konfiguration um VSE-Settings/Commands erweitert und lokale Abhaengigkeit `vseconnector-ts` aufgenommen.
+
+### Fixed
+- `#LNKSTEP#`-Expansion erzeugt jetzt bei Inline-Verwendung einen erzwungenen Zeilenumbruch fuer nachfolgende JCL.
+- Zusaeztliche Safety-Net-Korrektur fuer `...#LNKSTEP#// ...` in bestehendem Legacy-Conf-Inhalt.
+- Skeletons korrigiert, sodass `#LNKSTEP#` nicht mehr mit nachfolgenden Karten (`// EXEC ...`, `/&`) verklebt ist.
 
 ## [0.0.7] - 2026-03-02
 

@@ -7,6 +7,12 @@ import {
   State,
   TransportKind,
 } from "vscode-languageclient/node";
+import {
+  runVseClearPassword,
+  runVseCreateMemberConf,
+  runVseSetPassword,
+  runVseSubmitCompileJob,
+} from "./vse/submitFlow";
 
 
 let client: LanguageClient | undefined;
@@ -78,6 +84,31 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
   context.subscriptions.push(disposable);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cobol85.vseSubmitCompileJob", async () => {
+      await runVseSubmitCompileJob(context);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cobol85.vseCreateMemberConf", async () => {
+      await runVseCreateMemberConf(context);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cobol85.vseSetPassword", async () => {
+      await runVseSetPassword(context);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("cobol85.vseClearPassword", async () => {
+      await runVseClearPassword(context);
+    })
+  );
+
   // ---- LSP Client boot
   const serverModule = context.asAbsolutePath(
     path.join("server", "out", "server.js")
