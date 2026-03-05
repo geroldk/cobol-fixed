@@ -26,3 +26,4 @@ Thumbs.db
 # Local reference material (do not track in repo)
 specs/**/*.pdf
 specs/**/*.PDF
+*.vsix

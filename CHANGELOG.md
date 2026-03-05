@@ -8,36 +8,28 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 
 <!-- AUTO-CHANGELOG-START -->
 ### Snapshot (auto)
-- Letzter Release-Tag: `v0.0.7`
+- Letzter Release-Tag: `v0.0.9`
 - Neue Commits seit letztem Release: `0`
-- Tracking-Diff seit `v0.0.7`: `5` Dateien, `252` Einfuegungen, `7` Loeschungen
-- Untracked Dateien: `13`
 
 ### Commits seit letztem Release
-- Keine neuen Commits seit `v0.0.7`.
-
-### Dateien (Tracked, geaendert seit `v0.0.7`)
-- `CHANGELOG.md`
-- `client/src/extension.ts`
-- `package-lock.json`
-- `package.json`
-- `README.md`
-
-### Dateien (Untracked)
-- `client/src/vse/confGenerator.ts`
-- `client/src/vse/confParser.ts`
-- `client/src/vse/confResolver.ts`
-- `client/src/vse/jobAssembler.ts`
-- `client/src/vse/settings.ts`
-- `client/src/vse/submitFlow.ts`
-- `client/src/vse/types.ts`
-- `skel/COBOL85.skel`
-- `skel/COBOL85DLI.skel`
-- `skel/COBOL85DLI.xopt`
-- `skel/COBOL85DLICICS.skel`
-- `skel/COBOL85DLICICS.xopt`
-- `skel/COMPILEROPTIONS.opt`
+- Keine neuen Commits seit `v0.0.9`.
 <!-- AUTO-CHANGELOG-END -->
+
+## [0.0.9] - 2026-03-05
+
+### Fixed
+- **Tree-sitter Grammar**: `linkage_section` und `local_storage_section` erlauben jetzt leere Bodies (keine Data-Descriptions). Vorher erzwang die Grammatik mindestens einen Eintrag (`repeat1`), was bei COPY-Books die nicht aufgeloest werden konnten zu einem falschen `TS_PARSE_ERROR` an `LINKAGE SECTION.` fuehrte.
+- **VSIX-Packaging**: `vseconnector-ts` (`file:`-Link) verhinderte, dass `vsce` die `node_modules` ins VSIX einpackte (`npm list --production` schlug fehl). Neues Package-Script (`scripts/package-vsix.sh`) entfernt die lokale Abhaengigkeit temporaer beim Bauen und stellt sie danach wieder her.
+- **VSIX-Groesse**: `tree-sitter` CLI-Binary (18 MB), `build_err.log` und `package.json.bak` werden jetzt via `.vscodeignore` ausgeschlossen.
+
+### Changed
+- Versionserhoehung von `0.0.8` auf `0.0.9` (`package.json`, `package-lock.json`).
+- Tree-sitter WASM neu gebaut mit der korrigierten Grammatik (`server/assets/tree-sitter-cobol.wasm`).
+- `tree-sitter-cli` Dev-Dependency von `^0.25.0` auf `^0.25.10` aktualisiert.
+
+### Added
+- Neues Script `scripts/package-vsix.sh` fuer robustes VSIX-Packaging (kompiliert, bereinigt `package.json` temporaer, packt, stellt wieder her).
+- Neues npm-Script `package` in `package.json`.
 
 ## [0.0.8] - 2026-03-04
 

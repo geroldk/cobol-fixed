@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "publisher": "your-publisher",
   "license": "MIT",
   "repository": {
@@ -21,6 +21,7 @@
     "build:cobol-wasm": "cd vendor/tree-sitter-cobol && npx tree-sitter generate && cd ../.. && npx tree-sitter build --wasm --docker vendor/tree-sitter-cobol --output server/assets/tree-sitter-cobol.wasm",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p client/ && tsc -p server/",
+    "package": "bash scripts/package-vsix.sh",
     "watch": "tsc -watch -b client server",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -195,17 +196,17 @@
   "devDependencies": {
     "@types/node": "^25.2.3",
     "@types/vscode": "^1.104.0",
-    "tree-sitter-cli": "^0.25.0",
+    "tree-sitter-cli": "^0.25.10",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18",
     "vscode-oniguruma": "^2.0.1",
     "vscode-textmate": "^9.3.2"
   },
   "dependencies": {
-    "vseconnector-ts": "file:../vseconnector",
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",
+    "vseconnector-ts": "file:../vseconnector",
     "web-tree-sitter": "^0.25.0"
   }
 }

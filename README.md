@@ -1,7 +1,7 @@
 # COBOL Fixed Format (VS Code Extension)
 
 COBOL Fixed Format is a VS Code extension for COBOL 85 fixed-format workflows.
-Current package version: `0.0.8`.
+Current package version: `0.0.9`.
 
 It combines TextMate highlighting, a Tree-sitter based language server, and fixed-format editing helpers.
 

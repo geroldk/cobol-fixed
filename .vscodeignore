@@ -29,3 +29,7 @@ THIRD-PARTY-LICENSES.md
 package-lock.json
 CHANGLOG.md
 README_OLD.md
+build_err.log
+package.json.bak
+tree-sitter
+node_modules/tree-sitter-cli/**
