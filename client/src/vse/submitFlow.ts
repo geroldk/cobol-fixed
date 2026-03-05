@@ -55,7 +55,19 @@ function timestampPart(): string {
 }
 
 async function loadVseModule(): Promise<VseRuntimeModule> {
-  return await import("vseconnector-ts") as VseRuntimeModule;
+  try {
+    return await import("vseconnector-ts") as VseRuntimeModule;
+  } catch (err: unknown) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "MODULE_NOT_FOUND" || code === "ERR_MODULE_NOT_FOUND") {
+      throw new Error(
+        "Das Modul 'vseconnector-ts' ist nicht installiert. " +
+        "VSE-Funktionen (Submit, Password) sind nicht verfuegbar. " +
+        "Bitte das Paket im Extension-Verzeichnis installieren."
+      );
+    }
+    throw err;
+  }
 }
 
 async function ensurePassword(context: vscode.ExtensionContext, settings: VseSettings): Promise<string> {

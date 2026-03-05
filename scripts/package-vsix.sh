@@ -39,5 +39,10 @@ rm -f node_modules/vseconnector-ts
 echo "==> Packaging VSIX..."
 npx @vscode/vsce package --no-update-package-json "$@"
 
-echo "==> Done."
-ls -la *.vsix | tail -1
+BUILT_VSIX="$(ls -t *.vsix 2>/dev/null | head -1)"
+echo "==> Built: $BUILT_VSIX"
+ls -la "$BUILT_VSIX"
+
+echo ""
+echo "==> Running VSIX verification..."
+bash scripts/verify-vsix.sh "$BUILT_VSIX"

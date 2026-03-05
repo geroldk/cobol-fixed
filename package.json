@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "publisher": "your-publisher",
   "license": "MIT",
   "repository": {
@@ -22,6 +22,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p client/ && tsc -p server/",
     "package": "bash scripts/package-vsix.sh",
+    "verify-vsix": "bash scripts/verify-vsix.sh",
     "watch": "tsc -watch -b client server",
     "test": "vitest run",
     "test:watch": "vitest",

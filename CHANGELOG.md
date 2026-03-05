@@ -6,14 +6,22 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 
 - In Arbeit.
 
-<!-- AUTO-CHANGELOG-START -->
-### Snapshot (auto)
-- Letzter Release-Tag: `v0.0.9`
-- Neue Commits seit letztem Release: `0`
+## [0.0.10] - 2026-03-05
 
-### Commits seit letztem Release
-- Keine neuen Commits seit `v0.0.9`.
-<!-- AUTO-CHANGELOG-END -->
+### Fixed
+- **VSE-Fehlermeldung**: `Cannot find module 'vseconnector-ts'` beim Druecken von F5 wird jetzt sauber abgefangen. Statt dem rohen Node.js-Stack wird eine klare deutsche Meldung angezeigt: *"Das Modul 'vseconnector-ts' ist nicht installiert. VSE-Funktionen sind nicht verfuegbar."* Betrifft alle VSE-Kommandos (Submit, Password, etc.).
+
+### Added
+- **VSIX-Verifikation**: Neues Script `scripts/verify-vsix.sh` prueft automatisch nach dem Bauen:
+  - Pflicht-Dateien vorhanden (extension.js, server.js, WASM, node_modules)
+  - Verbotene Dateien absent (vseconnector-ts, tree-sitter-cli, nested VSIX)
+  - Require-Chain-Test (extension.js laesst sich ohne Crash laden)
+  - Groessen-Check (Warnung bei > 5 MB)
+- `npm run verify-vsix` als eigenstaendiges Script verfuegbar.
+- `scripts/package-vsix.sh` fuehrt die Verifikation jetzt automatisch nach dem Bauen aus.
+
+### Changed
+- Versionserhoehung von `0.0.9` auf `0.0.10`.
 
 ## [0.0.9] - 2026-03-05
 
