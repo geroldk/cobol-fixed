@@ -9,21 +9,24 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 ## [0.0.13] - 2026-03-05
 
 ### Fixed
-- **VSE-Fehlermeldung 196611**: Fehlermeldung von "POWER-Queue voll oder Ressource belegt" zu "Eintrag konnte in Reader Queue nicht erstellt werden" geaendert.
+- **VSE-Fehlermeldung 196611**: Text geaendert zu "Eintrag konnte in Reader Queue nicht erstellt werden".
+- **Doppelter Catalog-Suffix behoben**: `#CATALOG#` ersetzt jetzt nur den Basisnamen (z.B. `USRWMT`), der `.BATCH`/`.CICS`-Suffix bleibt im Skeleton. Keine doppelten Suffixe mehr (z.B. `USRWMT.BATCH.BATCH`).
+- **CBL-Zeilenumbruch ohne Komma am Ende**: `formatCompileOptions()` bricht Zeilen jetzt so um, dass kein Komma am Zeilenende steht. Komma wird als Separator zwischen Optionen verwendet, nicht als Trailing-Zeichen.
 
 ### Changed
-- **COMPILEROPTIONS.opt**: Compiler-Optionen beginnen jetzt mit ` CBL ` Praefix und werden bei > 72 Zeichen auf mehrere ` CBL `-Zeilen umgebrochen.
-- **#CATALOG# aufgeteilt in 4 Settings**: Statt 2 Catalog-Einstellungen (Test/Prod) gibt es jetzt 4 — jeweils fuer Non-CICS (Batch) und CICS, je Test und Prod. Die Skeleton-Dateien enthalten keinen hardcodierten `.BATCH`/`.CICS`-Suffix mehr; der vollstaendige Sublib-Name kommt aus den Settings.
-  - `cobol85.vse.placeholders.catalogBatchTest` (Default: `USRWMT.BATCH`)
-  - `cobol85.vse.placeholders.catalogBatchProd` (Default: `USRWMP.BATCH`)
-  - `cobol85.vse.placeholders.catalogCicsTest` (Default: `USRWMT.CICS`)
-  - `cobol85.vse.placeholders.catalogCicsProd` (Default: `USRWMP.CICS`)
+- **CBL-Formatierung bei Job-Expansion**: Compiler-Optionen werden in der `.conf`-Datei weiterhin als einfacher Komma-separierter String gespeichert (rueckwaertskompatibel). Erst bei der Job-Expansion (`#COMPILEOPTIONS#`) werden sie automatisch mit ` CBL `-Praefix formatiert und bei > 72 Zeichen umgebrochen.
+- **#CATALOG# aufgeteilt in 4 Settings** (Basisname ohne Suffix):
+  - `cobol85.vse.placeholders.catalogBatchTest` (Default: `USRWMT`)
+  - `cobol85.vse.placeholders.catalogBatchProd` (Default: `USRWMP`)
+  - `cobol85.vse.placeholders.catalogCicsTest` (Default: `USRWMT`)
+  - `cobol85.vse.placeholders.catalogCicsProd` (Default: `USRWMP`)
 - CICS-Erkennung ueber `conf.type === 4` (Member-Typ DLI+CICS).
 
 ### Added
+- **`formatCompileOptions()`**: Neue Funktion im Job-Assembler, die Compiler-Optionen zur Laufzeit in ` CBL `-Zeilen (max 72 Zeichen) formatiert.
 - **41 neue Testfaelle** in 2 neuen Testdateien:
-  - `confParser.test.ts` (19 Tests): Parsing, Serialisierung, Roundtrip, CBL-Praefix-Erhaltung, Fehlerbehandlung.
-  - `jobAssembler.test.ts` (22 Tests): Catalog-Auswahl nach Typ×Modus, fehlende Settings, CBL-Optionen, LNKSTEP, XOPTS, Placeholder-Aufloesung.
+  - `confParser.test.ts` (19 Tests): Parsing, Serialisierung, Roundtrip, Fehlerbehandlung.
+  - `jobAssembler.test.ts` (22 Tests): Catalog-Auswahl nach Typ×Modus, CBL-Formatierung, Double-Suffix-Pruefung, LNKSTEP, XOPTS.
 - Versionserhoehung von `0.0.12` auf `0.0.13`.
 
 ### Fixed

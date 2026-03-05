@@ -13,8 +13,8 @@ function minimalConf(overrides: Partial<Record<string, string>> = {}): string {
     type: "2",
     tjcl: '"// JOB TEST\\n/&"',
     pjcl: '"// JOB PROD\\n/&"',
-    toptions: '" CBL LIB, APOST\\n CBL DATA(24)"',
-    poptions: '" CBL LIB, APOST\\n CBL DATA(24)"',
+    toptions: '"LIB, APOST, NOADV"',
+    poptions: '"LIB, APOST, NOADV"',
   };
   const merged = { ...defaults, ...overrides };
   const lines = ["[General]"];
@@ -132,8 +132,8 @@ describe("serializeMemberConf", () => {
       type: 3,
       tjcl: "// JOB T\n/&",
       pjcl: "// JOB P\n/&",
-      toptions: " CBL LIB, APOST\n CBL DATA(24)",
-      poptions: " CBL LIB, APOST\n CBL DATA(24)",
+      toptions: "LIB, APOST, DATA(24)",
+      poptions: "LIB, APOST, DATA(24)",
       txopts: "XOPTS(DLI NOLIST)",
       pxopts: "XOPTS(DLI NOLIST)",
     };
@@ -179,8 +179,8 @@ describe("roundtrip", () => {
       type: 4,
       tjcl: "* $$ JOB\n// JOB TEST\n/&\n* $$ EOJ",
       pjcl: "* $$ JOB\n// JOB PROD\n/&\n* $$ EOJ",
-      toptions: " CBL LIB, APOST",
-      poptions: " CBL LIB, RENT, APOST",
+      toptions: "LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ, DATA(24), TRUNC(BIN), ZWB",
+      poptions: "LIB, RENT, APOST",
       txopts: "XOPTS(CICS DLI NOLIST XREF DEBUG COBOL2)",
       pxopts: "XOPTS(CICS DLI NOLIST XREF DEBUG COBOL2)",
     };
@@ -198,29 +198,26 @@ describe("roundtrip", () => {
     expect(parsed.pxopts).toBe(original.pxopts);
   });
 
-  it("preserves multi-line CBL toptions through roundtrip", () => {
+  it("preserves long compiler options string through roundtrip (no CBL prefix in conf)", () => {
     const original: MemberConf = {
       source: 0,
       phase: "CBLTEST",
       type: 2,
       tjcl: "// JOB\n/&",
       pjcl: "// JOB\n/&",
-      toptions: " CBL LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ\n CBL DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE",
-      poptions: " CBL LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ\n CBL DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE",
+      toptions: "LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ, DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE",
+      poptions: "LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ, DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE",
       txopts: "",
       pxopts: "",
     };
     const text = serializeMemberConf(original);
     const parsed = parseMemberConf(text);
 
+    // Plain options survive roundtrip exactly
     expect(parsed.toptions).toBe(original.toptions);
     expect(parsed.poptions).toBe(original.poptions);
-
-    // Verify each line starts with " CBL " and is ≤ 72 chars
-    for (const line of parsed.toptions.split("\n")) {
-      expect(line).toMatch(/^ CBL /);
-      expect(line.length).toBeLessThanOrEqual(72);
-    }
+    // No CBL prefix in the stored conf
+    expect(parsed.toptions).not.toContain(" CBL ");
   });
 
   it("preserves backslash sequences in JCL through roundtrip", () => {

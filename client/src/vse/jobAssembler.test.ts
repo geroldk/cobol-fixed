@@ -23,10 +23,10 @@ function makeSettings(overrides: Partial<VseSettings["placeholders"]> = {}): Vse
     submit: { executionMode: "blocking", timeoutSec: 120, previewBeforeSubmit: false },
     conf: { autoCreateOnMissing: true, previewBeforeCreate: false },
     placeholders: {
-      catalogBatchTest: "USRWMT.BATCH",
-      catalogBatchProd: "USRWMP.BATCH",
-      catalogCicsTest: "USRWMT.CICS",
-      catalogCicsProd: "USRWMP.CICS",
+      catalogBatchTest: "USRWMT",
+      catalogBatchProd: "USRWMP",
+      catalogCicsTest: "USRWMT",
+      catalogCicsProd: "USRWMP",
       id: "DLI/COBOL",
       lnkstep: "// EXEC LNKEDT",
       ...overrides,
@@ -42,7 +42,7 @@ function makeConf(overrides: Partial<MemberConf> = {}): MemberConf {
     type: 2,
     tjcl: [
       "* $$ JOB JNM=TEST",
-      "// LIBDEF *,CATALOG=#CATALOG#",
+      "// LIBDEF *,CATALOG=#CATALOG#.BATCH",
       "// EXEC IGYCRCTL",
       "#XOPTS#",
       "#COMPILEOPTIONS#",
@@ -54,7 +54,7 @@ function makeConf(overrides: Partial<MemberConf> = {}): MemberConf {
     ].join("\n"),
     pjcl: [
       "* $$ JOB JNM=TEST",
-      "// LIBDEF *,CATALOG=#CATALOG#",
+      "// LIBDEF *,CATALOG=#CATALOG#.BATCH",
       "// EXEC IGYCRCTL",
       "#XOPTS#",
       "#COMPILEOPTIONS#",
@@ -64,12 +64,45 @@ function makeConf(overrides: Partial<MemberConf> = {}): MemberConf {
       "/&",
       "* $$ EOJ",
     ].join("\n"),
-    toptions: " CBL LIB, APOST",
-    poptions: " CBL LIB, APOST",
+    toptions: "LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ, DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE",
+    poptions: "LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ, DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE",
     txopts: "",
     pxopts: "",
     ...overrides,
   };
+}
+
+function makeCicsConf(overrides: Partial<MemberConf> = {}): MemberConf {
+  return makeConf({
+    type: 4,
+    tjcl: [
+      "* $$ JOB JNM=TEST",
+      "// LIBDEF *,CATALOG=#CATALOG#.CICS INTO",
+      "// EXEC IGYCRCTL",
+      "#XOPTS#",
+      "#COMPILEOPTIONS#",
+      "#SOURCE#",
+      "/*",
+      "#LNKSTEP#",
+      "/&",
+      "* $$ EOJ",
+    ].join("\n"),
+    pjcl: [
+      "* $$ JOB JNM=TEST",
+      "// LIBDEF *,CATALOG=#CATALOG#.CICS INTO",
+      "// EXEC IGYCRCTL",
+      "#XOPTS#",
+      "#COMPILEOPTIONS#",
+      "#SOURCE#",
+      "/*",
+      "#LNKSTEP#",
+      "/&",
+      "* $$ EOJ",
+    ].join("\n"),
+    txopts: "XOPTS(CICS DLI NOLIST XREF DEBUG COBOL2)",
+    pxopts: "XOPTS(CICS DLI NOLIST XREF DEBUG COBOL2)",
+    ...overrides,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -77,7 +110,7 @@ function makeConf(overrides: Partial<MemberConf> = {}): MemberConf {
 // ---------------------------------------------------------------------------
 
 describe("assembleJobText — catalog selection", () => {
-  it("type 2 (COBOL85) + mode T → uses catalogBatchTest", () => {
+  it("type 2 (COBOL85) + mode T → uses catalogBatchTest + .BATCH suffix from skeleton", () => {
     const { jobText } = assembleJobText({
       conf: makeConf({ type: 2 }),
       mode: "T",
@@ -85,7 +118,8 @@ describe("assembleJobText — catalog selection", () => {
       settings: makeSettings(),
     });
     expect(jobText).toContain("CATALOG=USRWMT.BATCH");
-    expect(jobText).not.toContain("CICS");
+    // must NOT produce double .BATCH
+    expect(jobText).not.toContain("BATCH.BATCH");
   });
 
   it("type 2 (COBOL85) + mode P → uses catalogBatchProd", () => {
@@ -96,6 +130,7 @@ describe("assembleJobText — catalog selection", () => {
       settings: makeSettings(),
     });
     expect(jobText).toContain("CATALOG=USRWMP.BATCH");
+    expect(jobText).not.toContain("BATCH.BATCH");
   });
 
   it("type 3 (DLI) + mode T → uses catalogBatchTest", () => {
@@ -118,34 +153,36 @@ describe("assembleJobText — catalog selection", () => {
     expect(jobText).toContain("CATALOG=USRWMP.BATCH");
   });
 
-  it("type 4 (DLI+CICS) + mode T → uses catalogCicsTest", () => {
+  it("type 4 (DLI+CICS) + mode T → uses catalogCicsTest + .CICS suffix from skeleton", () => {
     const { jobText } = assembleJobText({
-      conf: makeConf({ type: 4 }),
+      conf: makeCicsConf(),
       mode: "T",
       sourceText: "SOURCE",
       settings: makeSettings(),
     });
-    expect(jobText).toContain("CATALOG=USRWMT.CICS");
+    expect(jobText).toContain("CATALOG=USRWMT.CICS INTO");
+    expect(jobText).not.toContain("CICS.CICS");
   });
 
   it("type 4 (DLI+CICS) + mode P → uses catalogCicsProd", () => {
     const { jobText } = assembleJobText({
-      conf: makeConf({ type: 4 }),
+      conf: makeCicsConf(),
       mode: "P",
       sourceText: "SOURCE",
       settings: makeSettings(),
     });
-    expect(jobText).toContain("CATALOG=USRWMP.CICS");
+    expect(jobText).toContain("CATALOG=USRWMP.CICS INTO");
+    expect(jobText).not.toContain("CICS.CICS");
   });
 
-  it("custom catalog values are used verbatim", () => {
+  it("custom catalog values are used verbatim (base name only)", () => {
     const { jobText } = assembleJobText({
-      conf: makeConf({ type: 4 }),
+      conf: makeCicsConf(),
       mode: "T",
       sourceText: "SOURCE",
-      settings: makeSettings({ catalogCicsTest: "CUSTOM.LIB" }),
+      settings: makeSettings({ catalogCicsTest: "CUSTOM" }),
     });
-    expect(jobText).toContain("CATALOG=CUSTOM.LIB");
+    expect(jobText).toContain("CATALOG=CUSTOM.CICS INTO");
   });
 });
 
@@ -168,7 +205,7 @@ describe("assembleJobText — missing catalog", () => {
   it("throws with setting key when catalogCicsProd is empty", () => {
     expect(() =>
       assembleJobText({
-        conf: makeConf({ type: 4 }),
+        conf: makeCicsConf(),
         mode: "P",
         sourceText: "SOURCE",
         settings: makeSettings({ catalogCicsProd: "" }),
@@ -189,39 +226,111 @@ describe("assembleJobText — missing catalog", () => {
 });
 
 // ---------------------------------------------------------------------------
-// #COMPILEOPTIONS# with multi-line CBL content
+// #COMPILEOPTIONS# with CBL formatting
 // ---------------------------------------------------------------------------
 
-describe("assembleJobText — CBL compile options", () => {
-  it("replaces #COMPILEOPTIONS# with multi-line CBL content", () => {
-    const multiLineCbl =
-      " CBL LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ\n" +
-      " CBL DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE";
+describe("assembleJobText — CBL compile options formatting", () => {
+  it("formats raw options into CBL-prefixed lines", () => {
     const { jobText } = assembleJobText({
-      conf: makeConf({ toptions: multiLineCbl }),
+      conf: makeConf(),
       mode: "T",
       sourceText: "SOURCE",
       settings: makeSettings(),
     });
-    expect(jobText).toContain(" CBL LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ");
-    expect(jobText).toContain(" CBL DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE");
+    const cblLines = jobText.split("\n").filter((l) => l.startsWith(" CBL "));
+    expect(cblLines.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("each CBL line in the output is ≤ 72 chars", () => {
-    const multiLineCbl =
-      " CBL LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ\n" +
-      " CBL DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE";
+  it("each CBL line is ≤ 72 chars", () => {
     const { jobText } = assembleJobText({
-      conf: makeConf({ toptions: multiLineCbl }),
+      conf: makeConf(),
       mode: "T",
       sourceText: "SOURCE",
       settings: makeSettings(),
     });
-    const cblLines = jobText.split("\n").filter((l) => l.trimStart().startsWith("CBL") || l.startsWith(" CBL"));
-    expect(cblLines.length).toBeGreaterThanOrEqual(2);
+    const cblLines = jobText.split("\n").filter((l) => l.startsWith(" CBL "));
     for (const line of cblLines) {
       expect(line.length).toBeLessThanOrEqual(72);
     }
+  });
+
+  it("each CBL line starts with ' CBL ' prefix", () => {
+    const { jobText } = assembleJobText({
+      conf: makeConf(),
+      mode: "T",
+      sourceText: "SOURCE",
+      settings: makeSettings(),
+    });
+    const cblLines = jobText.split("\n").filter((l) => l.startsWith(" CBL "));
+    expect(cblLines.length).toBeGreaterThanOrEqual(2); // long options should wrap
+    for (const line of cblLines) {
+      expect(line).toMatch(/^ CBL /);
+      // No CBL line should end with a trailing comma
+      expect(line).not.toMatch(/,\s*$/);
+    }
+  });
+
+  it("no CBL line ends with a trailing comma", () => {
+    const longOpts = "LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ, DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE";
+    const { jobText } = assembleJobText({
+      conf: makeConf({ toptions: longOpts }),
+      mode: "T",
+      sourceText: "SOURCE",
+      settings: makeSettings(),
+    });
+    const cblLines = jobText.split("\n").filter((l) => l.startsWith(" CBL "));
+    for (const line of cblLines) {
+      expect(line).not.toMatch(/,\s*$/);
+    }
+  });
+
+  it("wraps long option string into multiple CBL lines", () => {
+    const longOpts = "LIB, APOST, NOADV, NODYNAM, RENT, BUF(4096), NOSEQ, DATA(24), TRUNC(BIN), ZWB, NOOPTIMIZE, TEST, NOSSRANGE";
+    const { jobText } = assembleJobText({
+      conf: makeConf({ toptions: longOpts }),
+      mode: "T",
+      sourceText: "SOURCE",
+      settings: makeSettings(),
+    });
+    const cblLines = jobText.split("\n").filter((l) => l.startsWith(" CBL "));
+    expect(cblLines.length).toBeGreaterThanOrEqual(2);
+    expect(cblLines.join(" ")).toContain("LIB,");
+    expect(cblLines.join(" ")).toContain("NOSSRANGE");
+  });
+
+  it("short options stay on a single CBL line", () => {
+    const { jobText } = assembleJobText({
+      conf: makeConf({ toptions: "LIB, APOST" }),
+      mode: "T",
+      sourceText: "SOURCE",
+      settings: makeSettings(),
+    });
+    const cblLines = jobText.split("\n").filter((l) => l.startsWith(" CBL "));
+    expect(cblLines).toHaveLength(1);
+    expect(cblLines[0]).toBe(" CBL LIB, APOST");
+  });
+
+  it("empty options produce empty output", () => {
+    const { jobText } = assembleJobText({
+      conf: makeConf({ toptions: "" }),
+      mode: "T",
+      sourceText: "SOURCE",
+      settings: makeSettings(),
+    });
+    expect(jobText).not.toContain(" CBL ");
+  });
+
+  it("backwards-compatible: options already with CBL prefix are re-formatted correctly", () => {
+    const { jobText } = assembleJobText({
+      conf: makeConf({ toptions: " CBL LIB, APOST" }),
+      mode: "T",
+      sourceText: "SOURCE",
+      settings: makeSettings(),
+    });
+    const cblLines = jobText.split("\n").filter((l) => l.startsWith(" CBL "));
+    expect(cblLines.length).toBeGreaterThanOrEqual(1);
+    // Should not double-prefix
+    expect(cblLines[0]).not.toMatch(/^ CBL  CBL /);
   });
 });
 
@@ -289,10 +398,7 @@ describe("assembleJobText — placeholder resolution", () => {
     expect(result.phase).toBe("MYPHASE");
   });
 
-  it("throws when a required placeholder remains unresolved", () => {
-    // JCL with an extra #PHASENAME# that won't be substituted normally is fine
-    // because #PHASENAME# IS substituted. But if #ID# is in the JCL and id is
-    // empty, requirePlaceholderValue throws before we get to unresolved check.
+  it("throws when a required placeholder (id) is empty", () => {
     expect(() =>
       assembleJobText({
         conf: makeConf(),

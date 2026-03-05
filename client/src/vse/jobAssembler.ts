@@ -68,6 +68,39 @@ function enforceLnkStepLineBreak(jobText: string, lnkstep: string): string {
   return jobText.replace(pattern, "$1\n$2");
 }
 
+/**
+ * Wraps raw compiler options into fixed-format ` CBL ` lines (max 72 chars each).
+ * Input is a plain comma-separated string like "LIB, APOST, NOADV, ...".
+ * Output is one or more lines starting with " CBL " prefix, each ≤ 72 chars.
+ */
+function formatCompileOptions(raw: string): string {
+  const CBL_PREFIX = " CBL ";
+  const MAX_LINE = 72;
+
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+
+  // Split on commas, trim each option (comma is used as separator, not trailing)
+  const options = trimmed.split(/,/).map((t) => t.trim()).filter(Boolean);
+  if (options.length === 0) return "";
+
+  const lines: string[] = [];
+  let current = CBL_PREFIX + options[0];
+
+  for (let i = 1; i < options.length; i++) {
+    const candidate = current + ", " + options[i];
+    if (candidate.length > MAX_LINE) {
+      lines.push(current);
+      current = CBL_PREFIX + options[i];
+    } else {
+      current = candidate;
+    }
+  }
+  lines.push(current);
+
+  return lines.join("\n");
+}
+
 export function assembleJobText(input: AssembleInput): { jobText: string; phase: string } {
   const { conf, mode, sourceText, settings } = input;
 
@@ -92,7 +125,7 @@ export function assembleJobText(input: AssembleInput): { jobText: string; phase:
     ["#CATALOG#", catalog],
     ["#ID#", requirePlaceholderValue(settings.placeholders.id, "cobol85.vse.placeholders.id")],
     ["#XOPTS#", xopts],
-    ["#COMPILEOPTIONS#", compileOptions],
+    ["#COMPILEOPTIONS#", formatCompileOptions(compileOptions)],
     ["#SOURCE#", sourceText],
   ];
 

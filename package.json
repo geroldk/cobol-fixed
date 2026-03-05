@@ -168,22 +168,22 @@
         },
         "cobol85.vse.placeholders.catalogBatchTest": {
           "type": "string",
-          "default": "USRWMT.BATCH",
+          "default": "USRWMT",
           "description": "#CATALOG# fuer Non-CICS im Testmodus (T)."
         },
         "cobol85.vse.placeholders.catalogBatchProd": {
           "type": "string",
-          "default": "USRWMP.BATCH",
+          "default": "USRWMP",
           "description": "#CATALOG# fuer Non-CICS im Produktionsmodus (P)."
         },
         "cobol85.vse.placeholders.catalogCicsTest": {
           "type": "string",
-          "default": "USRWMT.CICS",
+          "default": "USRWMT",
           "description": "#CATALOG# fuer CICS im Testmodus (T)."
         },
         "cobol85.vse.placeholders.catalogCicsProd": {
           "type": "string",
-          "default": "USRWMP.CICS",
+          "default": "USRWMP",
           "description": "#CATALOG# fuer CICS im Produktionsmodus (P)."
         },
         "cobol85.vse.placeholders.id": {

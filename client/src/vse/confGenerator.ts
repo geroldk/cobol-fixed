@@ -17,7 +17,7 @@ async function readText(filePath: string): Promise<string> {
 }
 
 function normalizeForConf(text: string): string {
-  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trimEnd();
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
 }
 
 async function getDefaultsByType(extensionRoot: string, type: NewTypeOption): Promise<{
