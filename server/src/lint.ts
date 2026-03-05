@@ -534,6 +534,17 @@ export function lintProcedureVerbTypos(lines: string[], diags: GenDiag[]): void 
               message,
             });
           }
+        } else if (!isKnown) {
+          // Token contains digits or hyphens (e.g. WX10, BIS-KZ, CLOSE-DATUM).
+          // Not a valid COBOL verb candidate, so no diagnostic needed.
+          // But we must propagate continuation state so that subsequent
+          // pure-alpha data names (CKZ, AVALUE, ...) on the next line(s)
+          // are also recognized as continuations rather than unknown verbs.
+          treatedAsContinuation = isLikelyProcedureContinuationLine(
+            stmtText,
+            stmtIndent,
+            prevProcedureLine
+          );
         }
       }
 

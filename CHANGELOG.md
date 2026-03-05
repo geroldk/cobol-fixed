@@ -6,6 +6,23 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 
 - In Arbeit.
 
+## [0.0.11] - 2026-03-05
+
+### Fixed
+- **PROCEDURE_VERB_UNKNOWN false positives**: Rein-alphabetische Datennamen wie `CKZ` und `AVALUE` mit `OF`/`IN`-Qualifier auf Folgezeilen von mehrzeiligen Statements (z.B. DISPLAY, CALL USING) wurden faelschlicherweise als unbekannte COBOL-Verben gemeldet. Ursache: Datennamen mit Ziffern/Bindestrichen (z.B. `WX10`, `BIS-KZ`, `CLOSE-DATUM`) auf den Zwischenzeilen brachen die Continuation-Chain ab, sodass nachfolgende rein-alphabetische Tokens (`CKZ`, `AVALUE`) nicht mehr als Continuation erkannt wurden. Die Lint-Logik propagiert jetzt den Continuation-Status korrekt durch nicht-rein-alphabetische Datennamen.
+
+### Added
+- **13 neue Testfaelle** fuer `PROCEDURE_VERB_UNKNOWN` / `isLikelyProcedureContinuationLine`:
+  - Multi-line DISPLAY mit OF-qualifizierten Datennamen (CKZ- und AVALUE-Szenario)
+  - Chain-Propagation durch gemischt-alphanumerische Datennamen
+  - MOVE-Continuation mit IN-Qualifier
+  - CALL USING Continuation
+  - Echte unbekannte Verben werden weiterhin korrekt erkannt (nach Period)
+  - Unit-Tests fuer `isLikelyProcedureContinuationLine` (Indent, OF, IN, Period, Kontext)
+
+### Changed
+- Versionserhoehung von `0.0.10` auf `0.0.11`.
+
 ## [0.0.10] - 2026-03-05
 
 ### Fixed

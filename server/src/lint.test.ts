@@ -5,6 +5,7 @@ import {
   overlapsAnyRange,
   suggestProcedureVerb,
   lintPreprocessed,
+  isLikelyProcedureContinuationLine,
   resolveDliRequest,
   validateDliClausesByRequest,
   lintUndefinedIdentifiers,
@@ -201,6 +202,137 @@ describe("lintPreprocessed", () => {
     ].join("\n");
     const diags = lintPreprocessed(text);
     expect(diags.some((d) => d.code === "PROCEDURE_VERB_UNKNOWN")).toBe(false);
+  });
+
+  // ── PROCEDURE_VERB_UNKNOWN: continuation-chain propagation ──────────────
+
+  it("does not flag pure-alpha data names with OF qualifier on continuation lines (CKZ case)", () => {
+    // Simulates a multi-line DISPLAY where continuation indicator '-' was
+    // normalised to space. Data names with digits/hyphens (WX10, OKZ OF ...)
+    // must propagate the continuation chain so that the pure-alpha token
+    // CKZ on the final line is recognised as a data reference, not a verb.
+    const text = [
+      "       PROCEDURE DIVISION.",
+      "           DISPLAY I-TMP OPEN-DATUM OF INTERVALL-ZL ' '",
+      "               WX10 ' ' OKZ OF INTERVALL-ZL ' '",
+      "               CLOSE-DATUM OF INTERVALL-ZL ' '",
+      "               CKZ OF INTERVALL-ZL",
+    ].join("\n");
+    const diags = lintPreprocessed(text);
+    const verbUnknown = diags.filter((d) => d.code === "PROCEDURE_VERB_UNKNOWN");
+    expect(verbUnknown).toHaveLength(0);
+  });
+
+  it("does not flag pure-alpha data names with OF qualifier in long DISPLAY chains (AVALUE case)", () => {
+    const text = [
+      "       PROCEDURE DIVISION.",
+      "           DISPLAY BIS-DATUM OF A-TABLE ' ' WX10B ' '",
+      "               BIS-KZ OF A-TABLE ' '",
+      "               BIS-ZEIT OF A-TABLE ' '",
+      "               VON-DATUM OF A-TABLE ' '",
+      "               VON-KZ OF A-TABLE ' '",
+      "               VON-ZEIT OF A-TABLE ' '",
+      "               AVALUE OF A-TABLE ' '",
+    ].join("\n");
+    const diags = lintPreprocessed(text);
+    const verbUnknown = diags.filter((d) => d.code === "PROCEDURE_VERB_UNKNOWN");
+    expect(verbUnknown).toHaveLength(0);
+  });
+
+  it("still flags genuine unknown verbs after a period", () => {
+    // After a sentence-ending period, the next token is a new statement.
+    // A pure-alpha unknown token should be flagged.
+    const text = [
+      "       PROCEDURE DIVISION.",
+      "           DISPLAY 'HELLO'.",
+      "           MIVE A TO B.",
+    ].join("\n");
+    const diags = lintPreprocessed(text);
+    const verbUnknown = diags.filter((d) => d.code === "PROCEDURE_VERB_UNKNOWN");
+    expect(verbUnknown).toHaveLength(1);
+    expect(verbUnknown[0].message).toContain("MIVE");
+  });
+
+  it("still flags genuine unknown verbs at deeper indent after period", () => {
+    const text = [
+      "       PROCEDURE DIVISION.",
+      "           MOVE A TO B.",
+      "               XYZQ C.",
+    ].join("\n");
+    const diags = lintPreprocessed(text);
+    const verbUnknown = diags.filter((d) => d.code === "PROCEDURE_VERB_UNKNOWN");
+    expect(verbUnknown).toHaveLength(1);
+    expect(verbUnknown[0].message).toContain("XYZQ");
+  });
+
+  it("does not flag data names at deeper indent when previous statement has no period", () => {
+    // After CALL without period, indented data names are continuations.
+    const text = [
+      "       PROCEDURE DIVISION.",
+      "           CALL 'MYPROG' USING",
+      "               WS-FIELD1",
+      "               WS-FIELD2",
+    ].join("\n");
+    const diags = lintPreprocessed(text);
+    const verbUnknown = diags.filter((d) => d.code === "PROCEDURE_VERB_UNKNOWN");
+    expect(verbUnknown).toHaveLength(0);
+  });
+
+  it("propagates continuation chain through mixed alpha-numeric data names", () => {
+    // Data names with hyphens/digits (A1-X, B2-REC) should not break the
+    // continuation chain for a subsequent pure-alpha name with OF qualifier.
+    const text = [
+      "       PROCEDURE DIVISION.",
+      "           DISPLAY A1-X ' '",
+      "               B2-REC ' '",
+      "               TOTAL OF WS-SUM",
+    ].join("\n");
+    const diags = lintPreprocessed(text);
+    // TOTAL OF WS-SUM is a qualified data reference, not an unknown verb.
+    const verbUnknown = diags.filter((d) => d.code === "PROCEDURE_VERB_UNKNOWN");
+    expect(verbUnknown).toHaveLength(0);
+  });
+
+  it("handles MOVE continuation with qualified data names using IN", () => {
+    const text = [
+      "       PROCEDURE DIVISION.",
+      "           MOVE FIELD1 TO",
+      "               RECDATA IN OUTPUT-REC",
+    ].join("\n");
+    const diags = lintPreprocessed(text);
+    const verbUnknown = diags.filter((d) => d.code === "PROCEDURE_VERB_UNKNOWN");
+    expect(verbUnknown).toHaveLength(0);
+  });
+
+  // ── isLikelyProcedureContinuationLine unit tests ────────────────────────
+
+  it("isLikelyProcedureContinuationLine: returns true for deeper indent", () => {
+    const prev = { indent: 4, startsKnownOrClause: true, hasSeparatorPeriod: false };
+    expect(isLikelyProcedureContinuationLine("WS-A", 8, prev)).toBe(true);
+  });
+
+  it("isLikelyProcedureContinuationLine: returns true for OF qualifier", () => {
+    const prev = { indent: 4, startsKnownOrClause: true, hasSeparatorPeriod: false };
+    expect(isLikelyProcedureContinuationLine("CKZ OF TABEL", 4, prev)).toBe(true);
+  });
+
+  it("isLikelyProcedureContinuationLine: returns true for IN qualifier", () => {
+    const prev = { indent: 4, startsKnownOrClause: true, hasSeparatorPeriod: false };
+    expect(isLikelyProcedureContinuationLine("FLD IN REC", 4, prev)).toBe(true);
+  });
+
+  it("isLikelyProcedureContinuationLine: returns false after period", () => {
+    const prev = { indent: 4, startsKnownOrClause: true, hasSeparatorPeriod: true };
+    expect(isLikelyProcedureContinuationLine("RECDATA OF X", 8, prev)).toBe(false);
+  });
+
+  it("isLikelyProcedureContinuationLine: returns false without prev context", () => {
+    expect(isLikelyProcedureContinuationLine("RECDATA OF X", 8, undefined)).toBe(false);
+  });
+
+  it("isLikelyProcedureContinuationLine: returns false when prev is not known/clause", () => {
+    const prev = { indent: 4, startsKnownOrClause: false, hasSeparatorPeriod: false };
+    expect(isLikelyProcedureContinuationLine("CKZ OF TABEL", 8, prev)).toBe(false);
   });
 
   it("flags unknown HANDLE CONDITION value", () => {
