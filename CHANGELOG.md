@@ -6,7 +6,25 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 
 - In Arbeit.
 
-## [0.0.12] - 2026-03-05
+## [0.0.13] - 2026-03-05
+
+### Fixed
+- **VSE-Fehlermeldung 196611**: Fehlermeldung von "POWER-Queue voll oder Ressource belegt" zu "Eintrag konnte in Reader Queue nicht erstellt werden" geaendert.
+
+### Changed
+- **COMPILEROPTIONS.opt**: Compiler-Optionen beginnen jetzt mit ` CBL ` Praefix und werden bei > 72 Zeichen auf mehrere ` CBL `-Zeilen umgebrochen.
+- **#CATALOG# aufgeteilt in 4 Settings**: Statt 2 Catalog-Einstellungen (Test/Prod) gibt es jetzt 4 — jeweils fuer Non-CICS (Batch) und CICS, je Test und Prod. Die Skeleton-Dateien enthalten keinen hardcodierten `.BATCH`/`.CICS`-Suffix mehr; der vollstaendige Sublib-Name kommt aus den Settings.
+  - `cobol85.vse.placeholders.catalogBatchTest` (Default: `USRWMT.BATCH`)
+  - `cobol85.vse.placeholders.catalogBatchProd` (Default: `USRWMP.BATCH`)
+  - `cobol85.vse.placeholders.catalogCicsTest` (Default: `USRWMT.CICS`)
+  - `cobol85.vse.placeholders.catalogCicsProd` (Default: `USRWMP.CICS`)
+- CICS-Erkennung ueber `conf.type === 4` (Member-Typ DLI+CICS).
+
+### Added
+- **41 neue Testfaelle** in 2 neuen Testdateien:
+  - `confParser.test.ts` (19 Tests): Parsing, Serialisierung, Roundtrip, CBL-Praefix-Erhaltung, Fehlerbehandlung.
+  - `jobAssembler.test.ts` (22 Tests): Catalog-Auswahl nach Typ×Modus, fehlende Settings, CBL-Optionen, LNKSTEP, XOPTS, Placeholder-Aufloesung.
+- Versionserhoehung von `0.0.12` auf `0.0.13`.
 
 ### Fixed
 - **vseconnector-ts in VSIX gebundelt**: Das Modul `vseconnector-ts` wird jetzt komplett in die VSIX-Datei integriert (nur `dist/`, ohne unnoetige CLI-Abhaengigkeiten). VSE-Funktionen (Submit, Password, etc.) funktionieren jetzt direkt nach der Installation ohne zusaetzliche Schritte.

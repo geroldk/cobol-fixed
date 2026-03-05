@@ -130,11 +130,37 @@ async function openCombinedList(phase: string, mode: "T" | "P", baseDir: string,
   await vscode.window.showTextDocument(doc, { preview: false });
 }
 
+/** Human-readable descriptions for VSE/POWER error codes. */
+const VSE_ERROR_CODES: Record<number, string> = {
+  1:      "Interner Serverfehler",
+  2:      "Unbekannter Fehler",
+  65537:  "Anmeldung verweigert",
+  65538:  "Ungueltiger Benutzer",
+  65539:  "Ungueltiges Passwort",
+  65540:  "Benutzer bereits angemeldet",
+  65541:  "Passwort abgelaufen",
+  131073: "Vorgang nicht erlaubt",
+  196609: "Eintrag nicht gefunden",
+  196610: "Eintrag existiert bereits",
+  196611: "Eintrag konnte in Reader Queue nicht erstellt werden",
+  196612: "Zugriff verweigert",
+  327685: "Ungueltiger Parameter",
+  327686: "Konkurrierendes Update (Eintrag wurde zwischenzeitlich geaendert)",
+  393217: "Sicherheitssystem hat den Zugriff verweigert",
+};
+
 function mapSubmitError(error: unknown): string {
   if (error instanceof Error) {
-    if (error.name === "VseAuthError") return `Authentication failed: ${error.message}`;
-    if (error.name === "VseConnectionError") return `Connection failed: ${error.message}`;
-    if (error.name === "VseTimeoutError") return `Submit timeout: ${error.message}`;
+    if (error.name === "VseAuthError") return `Authentifizierung fehlgeschlagen: ${error.message}`;
+    if (error.name === "VseConnectionError") return `Verbindung fehlgeschlagen: ${error.message}`;
+    if (error.name === "VseTimeoutError") return `Zeitueberschreitung: ${error.message}`;
+    if (error.name === "VseProtocolError") {
+      const code = (error as Error & { code?: number }).code;
+      if (code !== undefined && VSE_ERROR_CODES[code]) {
+        return `VSE-Fehler ${code}: ${VSE_ERROR_CODES[code]}`;
+      }
+      return `VSE-Protokollfehler: ${error.message}`;
+    }
     return error.message;
   }
   return String(error);

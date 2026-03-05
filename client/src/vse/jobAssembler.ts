@@ -74,9 +74,17 @@ export function assembleJobText(input: AssembleInput): { jobText: string; phase:
   const jcl = mode === "T" ? conf.tjcl : conf.pjcl;
   const compileOptions = mode === "T" ? conf.toptions : conf.poptions;
   const xopts = mode === "T" ? conf.txopts : conf.pxopts;
-  const catalog = mode === "T"
-    ? requirePlaceholderValue(settings.placeholders.catalogTest, "cobol85.vse.placeholders.catalogTest")
-    : requirePlaceholderValue(settings.placeholders.catalogProd, "cobol85.vse.placeholders.catalogProd");
+  const catalog = (() => {
+    const isCics = conf.type === 4;
+    if (mode === "T") {
+      return isCics
+        ? requirePlaceholderValue(settings.placeholders.catalogCicsTest, "cobol85.vse.placeholders.catalogCicsTest")
+        : requirePlaceholderValue(settings.placeholders.catalogBatchTest, "cobol85.vse.placeholders.catalogBatchTest");
+    }
+    return isCics
+      ? requirePlaceholderValue(settings.placeholders.catalogCicsProd, "cobol85.vse.placeholders.catalogCicsProd")
+      : requirePlaceholderValue(settings.placeholders.catalogBatchProd, "cobol85.vse.placeholders.catalogBatchProd");
+  })();
   const lnkstep = requirePlaceholderValue(settings.placeholders.lnkstep, "cobol85.vse.placeholders.lnkstep");
 
   const replacements: Array<[string, string]> = [

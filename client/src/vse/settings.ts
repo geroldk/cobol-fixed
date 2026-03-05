@@ -36,8 +36,10 @@ export function getVseSettings(): VseSettings {
       previewBeforeCreate: readBoolean(config, "vse.conf.previewBeforeCreate", true),
     },
     placeholders: {
-      catalogTest: readString(config, "vse.placeholders.catalogTest", "").trim(),
-      catalogProd: readString(config, "vse.placeholders.catalogProd", "").trim(),
+      catalogBatchTest: readString(config, "vse.placeholders.catalogBatchTest", "USRWMT.BATCH").trim(),
+      catalogBatchProd: readString(config, "vse.placeholders.catalogBatchProd", "USRWMP.BATCH").trim(),
+      catalogCicsTest: readString(config, "vse.placeholders.catalogCicsTest", "USRWMT.CICS").trim(),
+      catalogCicsProd: readString(config, "vse.placeholders.catalogCicsProd", "USRWMP.CICS").trim(),
       id: readString(config, "vse.placeholders.id", "").trim(),
       lnkstep: readString(config, "vse.placeholders.lnkstep", "").trim(),
     },

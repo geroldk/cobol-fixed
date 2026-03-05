@@ -33,8 +33,10 @@ export type VseSettings = {
     previewBeforeCreate: boolean;
   };
   placeholders: {
-    catalogTest: string;
-    catalogProd: string;
+    catalogBatchTest: string;
+    catalogBatchProd: string;
+    catalogCicsTest: string;
+    catalogCicsProd: string;
     id: string;
     lnkstep: string;
   };

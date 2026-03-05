@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "publisher": "your-publisher",
   "license": "MIT",
   "repository": {
@@ -166,15 +166,25 @@
           "default": true,
           "description": "Show generated .conf preview before writing file."
         },
-        "cobol85.vse.placeholders.catalogTest": {
+        "cobol85.vse.placeholders.catalogBatchTest": {
           "type": "string",
-          "default": "",
-          "description": "Value for #CATALOG# in test mode (T)."
+          "default": "USRWMT.BATCH",
+          "description": "#CATALOG# fuer Non-CICS im Testmodus (T)."
         },
-        "cobol85.vse.placeholders.catalogProd": {
+        "cobol85.vse.placeholders.catalogBatchProd": {
           "type": "string",
-          "default": "",
-          "description": "Value for #CATALOG# in production mode (P)."
+          "default": "USRWMP.BATCH",
+          "description": "#CATALOG# fuer Non-CICS im Produktionsmodus (P)."
+        },
+        "cobol85.vse.placeholders.catalogCicsTest": {
+          "type": "string",
+          "default": "USRWMT.CICS",
+          "description": "#CATALOG# fuer CICS im Testmodus (T)."
+        },
+        "cobol85.vse.placeholders.catalogCicsProd": {
+          "type": "string",
+          "default": "USRWMP.CICS",
+          "description": "#CATALOG# fuer CICS im Produktionsmodus (P)."
         },
         "cobol85.vse.placeholders.id": {
           "type": "string",

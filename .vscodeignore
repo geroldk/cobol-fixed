@@ -21,6 +21,8 @@ client/src/**
 client/tsconfig.json
 server/out/**/*.test.js
 server/out/**/*.test.js.map
+client/out/**/*.test.js
+client/out/**/*.test.js.map
 
 cics_summary.txt
 TODO.md
