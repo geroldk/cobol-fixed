@@ -6,6 +6,16 @@ Kompletter Verlauf von "Stunde 0" bis jetzt.
 
 - In Arbeit.
 
+## [0.0.12] - 2026-03-05
+
+### Fixed
+- **vseconnector-ts in VSIX gebundelt**: Das Modul `vseconnector-ts` wird jetzt komplett in die VSIX-Datei integriert (nur `dist/`, ohne unnoetige CLI-Abhaengigkeiten). VSE-Funktionen (Submit, Password, etc.) funktionieren jetzt direkt nach der Installation ohne zusaetzliche Schritte.
+
+### Changed
+- **package-vsix.sh**: Statt das Modul zu entfernen, wird jetzt eine eigenstaendige Kopie von `vseconnector-ts/dist/` in `node_modules/` angelegt und mitverpackt.
+- **verify-vsix.sh**: `vseconnector-ts` von der Verbotsliste in die Pflichtliste verschoben. Require-Chain-Test prueft jetzt auch die Aufloesbarkeit von `vseconnector-ts`.
+- Versionserhoehung von `0.0.11` auf `0.0.12`.
+
 ## [0.0.11] - 2026-03-05
 
 ### Fixed

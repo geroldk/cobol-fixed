@@ -50,6 +50,8 @@ REQUIRED_FILES=(
   "extension/node_modules/vscode-languageserver/node.js"
   "extension/node_modules/web-tree-sitter/tree-sitter.js"
   "extension/package.json"
+  "extension/node_modules/vseconnector-ts/dist/index.js"
+  "extension/node_modules/vseconnector-ts/package.json"
 )
 
 echo ""
@@ -65,7 +67,6 @@ done
 
 # ── 2. Forbidden files ──────────────────────────────────────────────────────
 FORBIDDEN_DIRS=(
-  "extension/node_modules/vseconnector-ts"
   "extension/node_modules/tree-sitter-cli"
 )
 
@@ -123,7 +124,7 @@ function collectJs(dir) {
 
 const allJs = [...collectJs(clientOut), ...collectJs(serverOut)];
 const requireRe = /\brequire\s*\(\s*["']([^"']+)["']\s*\)/g;
-const SKIP = new Set(["vscode", "vseconnector-ts"]);
+const SKIP = new Set(["vscode"]);
 
 let errors = 0;
 const checked = new Set();

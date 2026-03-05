@@ -2,7 +2,7 @@
   "name": "cobol-fixed",
   "displayName": "COBOL Fixed Format",
   "description": "COBOL 85 fixed-format tooling (TextMate + Column-7 comment toggle).",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "publisher": "your-publisher",
   "license": "MIT",
   "repository": {
