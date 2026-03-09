@@ -217,7 +217,7 @@
     "vscode-languageclient": "^9.0.1",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.12",
-    "vseconnector-ts": "file:../vseconnector",
+    "vseconnector-ts": "file:vendor/vseconnector-ts",
     "web-tree-sitter": "^0.25.0"
   }
 }

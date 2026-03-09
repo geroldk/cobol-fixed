@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # package-vsix.sh — Build VSIX with clean dependency tree.
 #
-# Problem: vseconnector-ts uses a file: link to ../vseconnector which causes
+# Problem: vseconnector-ts uses a file: link which causes
 # npm list --production to fail (broken transitive deps in the linked project).
 # vsce aborts when npm list returns non-zero, so no node_modules get packaged.
 #
@@ -10,7 +10,14 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-VSE_SRC="$(readlink -f node_modules/vseconnector-ts 2>/dev/null || echo ../vseconnector)"
+VSE_SRC="$(readlink -f node_modules/vseconnector-ts 2>/dev/null || echo vendor/vseconnector-ts)"
+
+if [[ ! -d "$VSE_SRC/dist" ]]; then
+  echo "ERROR: Missing $VSE_SRC/dist"
+  echo "Build the submodule first:"
+  echo "  (cd vendor/vseconnector-ts && npm install && npm run build)"
+  exit 1
+fi
 
 cleanup() {
   echo "==> Restoring package.json and symlink..."
@@ -18,7 +25,7 @@ cleanup() {
     mv package.json.bak package.json
   fi
   rm -rf node_modules/vseconnector-ts
-  ln -sf ../../vseconnector node_modules/vseconnector-ts
+  ln -sf ../vendor/vseconnector-ts node_modules/vseconnector-ts
 }
 trap cleanup EXIT
 

@@ -1,3 +1,6 @@
 [submodule "vendor/tree-sitter-cobol"]
 	path = vendor/tree-sitter-cobol
 	url = https://github.com/geroldk/tree-sitter-cobol
+[submodule "vendor/vseconnector-ts"]
+	path = vendor/vseconnector-ts
+	url = https://github.com/geroldk/vseconnectorclientlibrabry
